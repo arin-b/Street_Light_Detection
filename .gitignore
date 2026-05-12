@@ -1,0 +1,8 @@
+# Large local dataset storage
+datasets/raw/
+datasets/extracted_frames/
+datasets/imported/
+datasets/derived/
+
+# Downloaded literature assets
+documentation/literature_review/papers/
