@@ -13,7 +13,7 @@ This work is being carried out under RBCCPS, Indian Institute of Science (IISc).
 ## Team
 
 - Angad Singh Ahuja, Research Intern, RBCCPS, IISc
-- Arindam Mitra, Research Intern, RBCCPS, IISc
+- Arindam Bhaduri, Research Intern, RBCCPS, IISc
 
 ## Academic Supervision
 

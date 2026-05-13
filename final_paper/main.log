@@ -1,9 +1,9 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.5.13)  13 MAY 2026 05:32
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.5.13)  13 MAY 2026 14:47
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
-**F:/RBCCPS_Directory/final_paper/main.tex
-(F:/RBCCPS_Directory/final_paper/main.tex
+**./main.tex
+(main.tex
 LaTeX2e <2025-11-01>
 L3 programming layer <2025-12-24>
 (C:\Users\ahuja\AppData\Local\Programs\MiKTeX\tex/latex/base\article.cls
@@ -145,18 +145,18 @@ L3 programming layer <2025-12-24>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 1049 strings out of 467871
- 17981 string characters out of 5418376
+ 1047 strings out of 467871
+ 17885 string characters out of 5418376
  435733 words of memory out of 5000000
  29986 multiletter control sequences out of 15000+600000
  629837 words of font info for 47 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 57i,6n,65p,177b,210s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 57i,6n,65p,147b,210s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/ahuja/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/
 cmbx12.pfb><C:/Users/ahuja/AppData/Local/Programs/MiKTeX/fonts/type1/public/ams
 fonts/cm/cmr12.pfb><C:/Users/ahuja/AppData/Local/Programs/MiKTeX/fonts/type1/pu
 blic/amsfonts/cm/cmr17.pfb>
-Output written on main.pdf (13 pages, 49182 bytes).
+Output written on main.pdf (13 pages, 49345 bytes).
 PDF statistics:
  60 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
