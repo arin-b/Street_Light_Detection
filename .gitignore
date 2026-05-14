@@ -1,8 +1,26 @@
 # Large local dataset storage
+datasets/annotated_seed/
 datasets/raw/
 datasets/extracted_frames/
 datasets/imported/
 datasets/derived/
+datasets/yolov26_weights/
+
+# Local environments and caches
+.venvs/
+.miktex-local/
+__pycache__/
+*.py[cod]
+
+# Annotation automation pipeline artifacts
+datasets/derived/annotation_automation/
+runs/
+scripts/annotation_automation/__pycache__/
+scripts/annotation_automation/*.py[cod]
+
+# LaTeX build artifacts
+final_paper/*.aux
+final_paper/*.log
 
 # Downloaded literature assets
 documentation/literature_review/papers/

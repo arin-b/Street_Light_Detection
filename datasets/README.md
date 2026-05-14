@@ -5,7 +5,7 @@ This directory has been reorganized into four top-level buckets:
 - `raw/`: source videos
 - `extracted_frames/`: frame batches derived from source videos
 - `imported/`: externally sourced datasets
-- `derived/`: generated previews or outputs
+- `derived/`: generated previews, annotation automation outputs, or other rebuildable artifacts
 
 ## Current Structure
 
@@ -30,8 +30,21 @@ datasets/
           road_hazard_speedbreaker/
           unknown_mixed/
   derived/
+    annotation_automation/
+      cleaned_coco/
+      manifests/
+      reports/
+      reviews/
+      training/
+      yolo_dataset/
     previews/
 ```
+
+## Annotation Automation Pipeline
+
+The tracked annotation automation scripts live in [../scripts/annotation_automation/README.md](../scripts/annotation_automation/README.md).
+
+Generated outputs from `build_annotation_corpus.py` are written under `derived/annotation_automation/`, with source and merged manifests in `derived/annotation_automation/manifests/`, review CSVs in `derived/annotation_automation/reviews/`, summary reports in `derived/annotation_automation/reports/`, and regenerated dataset exports in `derived/annotation_automation/cleaned_coco/`, `derived/annotation_automation/yolo_dataset/`, and `derived/annotation_automation/training/`.
 
 ## Inventory
 
