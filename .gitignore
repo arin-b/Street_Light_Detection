@@ -17,6 +17,7 @@ datasets/derived/annotation_automation/
 runs/
 scripts/annotation_automation/__pycache__/
 scripts/annotation_automation/*.py[cod]
+_tmp_*/
 
 # LaTeX build artifacts
 final_paper/*.aux

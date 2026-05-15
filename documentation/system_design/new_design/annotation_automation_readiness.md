@@ -58,6 +58,7 @@ Not good enough yet for annotation automation as defined in [annotation_automati
 - Calibrate and validate the annotation reliability layer on reviewed data so detector confidence is not used alone.
 - Run cross-dataset validation on a trained detector and calibrated gate, because the current Jobin and Arindam exports alone are not sufficient to justify the `AUC >= 0.95` admission rule.
 - ~~Add annotation metadata and audit fields so accepted auto-labels are traceable.~~
+- Add an external open-source annotated streetlight source, but reserve part of it as a held-out source-specific test set instead of consuming all of it for training.
 
 ## What is implemented locally now
 
@@ -79,6 +80,12 @@ Not good enough yet for annotation automation as defined in [annotation_automati
 - ~~Annotation reliability gate scaffolding~~ completed with local scripts written to:
   - [score_reliability.py](F:\RBCCPS_Directory\scripts\annotation_automation\score_reliability.py)
 - ~~Cross-dataset validation scaffolding~~ completed with source-specific split manifests and cleaned validation splits prepared locally.
+- ~~Reviewer batch materialization tooling~~ completed with a local script written to:
+  - [materialize_review_batches.py](F:\RBCCPS_Directory\scripts\annotation_automation\materialize_review_batches.py)
+- ~~Reviewed-negative ingestion tooling~~ completed with a local script written to:
+  - [integrate_reviewed_data.py](F:\RBCCPS_Directory\scripts\annotation_automation\integrate_reviewed_data.py)
+- ~~Gate evaluation tooling~~ completed with a local script written to:
+  - [evaluate_annotation_gate.py](F:\RBCCPS_Directory\scripts\annotation_automation\evaluate_annotation_gate.py)
 
 ## What remains manual right now
 
@@ -88,6 +95,23 @@ Not good enough yet for annotation automation as defined in [annotation_automati
 - Run the first remote GPU training job for the streetlight detector using the generated remote package.
 - Review candidate auto-labels that fall into the `manual-review` band after detector inference is available.
 - Approve the final `auto-accept` threshold only after the calibrated gate satisfies `AUC >= 0.95` on pooled and source-specific validation.
+
+## External dataset decision
+
+The current dataset-formation plan now explicitly allows an external open-source annotated road-scene source to be added for `streetlight` extraction.
+
+That external source is not train-only.
+
+Use it in two roles:
+
+1. as additional training augmentation after ontology cleanup
+2. as a later held-out external test slice for generalization checking
+
+The important rule is that external annotations must retain source identity and must not all be merged blindly into the training pool.
+
+Implementation note:
+
+- the extraction scaffold for this is already present in [extract_mapillary_vistas_streetlights.py](F:\RBCCPS_Directory\scripts\annotation_automation\extract_mapillary_vistas_streetlights.py)
 
 ## How to close each gap
 
@@ -341,3 +365,35 @@ The missing requirements are:
 - executed cross-dataset validation on trained detector outputs
 
 The current assets are strong enough to start building the seed detector. They are not strong enough to claim the annotation automation system is ready.
+
+## Latest Implementation Status
+
+Continued the annotation-automation implementation and pushed it past scaffolding.
+
+What I added:
+- [materialize_review_batches.py](F:\RBCCPS_Directory\scripts\annotation_automation\materialize_review_batches.py) to copy review images into reviewer-friendly folders
+- [integrate_reviewed_data.py](F:\RBCCPS_Directory\scripts\annotation_automation\integrate_reviewed_data.py) to admit only reviewed `clean_negative` frames into the derived YOLO corpus
+- [evaluate_annotation_gate.py](F:\RBCCPS_Directory\scripts\annotation_automation\evaluate_annotation_gate.py) to compute pooled and per-dataset gate AUC and threshold metrics
+- [REVIEW_WORKFLOW.md](F:\RBCCPS_Directory\scripts\annotation_automation\REVIEW_WORKFLOW.md) so the manual review is explicit
+- updated [scripts/annotation_automation/README.md](F:\RBCCPS_Directory\scripts\annotation_automation\README.md) and [annotation_automation_readiness.md](F:\RBCCPS_Directory\documentation\system_design\new_design\annotation_automation_readiness.md)
+
+What I ran:
+- Materialized reviewer batches at [reviews/batches](F:\RBCCPS_Directory\datasets\derived\annotation_automation\reviews\batches)
+- Created `247` hard-negative review images and `182` calibration review images
+- Verified the reviewed-negative ingestion script on the current manifests
+- Current ingestion result is correct: `0` clean negatives admitted, `247` still pending, because no manual labels have been filled yet
+
+What remains manual:
+- Fill [hard_negative_review_manifest.csv](F:\RBCCPS_Directory\datasets\derived\annotation_automation\reviews\hard_negative_review_manifest.csv)
+- Fill and lock [calibration_subset_manifest.csv](F:\RBCCPS_Directory\datasets\derived\annotation_automation\reviews\calibration_subset_manifest.csv)
+- Use [REVIEW_WORKFLOW.md](F:\RBCCPS_Directory\scripts\annotation_automation\REVIEW_WORKFLOW.md) while doing that
+- After that, rerun [integrate_reviewed_data.py](F:\RBCCPS_Directory\scripts\annotation_automation\integrate_reviewed_data.py)
+- Then run the first GPU training job from [remote_package](F:\RBCCPS_Directory\datasets\derived\annotation_automation\training\remote_package)
+
+The repo changes from this turn are limited to:
+- [annotation_automation_readiness.md](F:\RBCCPS_Directory\documentation\system_design\new_design\annotation_automation_readiness.md)
+- [README.md](F:\RBCCPS_Directory\scripts\annotation_automation\README.md)
+- [REVIEW_WORKFLOW.md](F:\RBCCPS_Directory\scripts\annotation_automation\REVIEW_WORKFLOW.md)
+- the three new Python utilities above
+
+If you want, the next useful step is for me to make a very strict reviewer checklist for what counts as `clean_negative` versus `missed_positive` specifically for Bengaluru night street scenes.
