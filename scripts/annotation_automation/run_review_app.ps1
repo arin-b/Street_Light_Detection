@@ -1,6 +1,7 @@
 $ErrorActionPreference = "Stop"
 
-$scriptPath = Join-Path $PSScriptRoot "review_app.py"
+$repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\\.."))
+$moduleArgs = @("-m", "rbccps_od", "review-app")
 
 $pythonCommands = @()
 
@@ -25,7 +26,13 @@ foreach ($command in $pythonCommands) {
     if ($command.Length -gt 1) {
       $args = @($command[1..($command.Length - 1)])
     }
-    & $command[0] @args $scriptPath
+    Push-Location $repoRoot
+    try {
+      & $command[0] @args @moduleArgs
+    }
+    finally {
+      Pop-Location
+    }
     exit $LASTEXITCODE
   }
   catch {
@@ -33,4 +40,4 @@ foreach ($command in $pythonCommands) {
   }
 }
 
-throw "Could not find a working Python interpreter to launch review_app.py."
+throw "Could not find a working Python interpreter to launch python -m rbccps_od review-app."

@@ -25,7 +25,7 @@ Do not reverse that order.
 
 Use:
 
-- [prepare_annotation_corpus_v3_reviews.py](F:\RBCCPS_Directory\scripts\annotation_automation\prepare_annotation_corpus_v3_reviews.py)
+- `python -m rbccps_od sync-v3-reviews`
 
 This script:
 
@@ -43,7 +43,7 @@ This script:
 
 Use:
 
-- [build_annotation_corpus_v3.py](F:\RBCCPS_Directory\scripts\annotation_automation\build_annotation_corpus_v3.py)
+- `python -m rbccps_od build-v3-corpus`
 
 This script:
 
@@ -73,7 +73,7 @@ Outputs:
 
 Use:
 
-- [build_tiled_training_dataset.py](F:\RBCCPS_Directory\scripts\annotation_automation\build_tiled_training_dataset.py)
+- `python -m rbccps_od build-tiled`
 
 Locked defaults:
 
@@ -88,7 +88,7 @@ This tiles only the `train` split and keeps `valid` and `test` full-image.
 
 Use:
 
-- [build_mixed_local_openimages_dataset.py](F:\RBCCPS_Directory\scripts\annotation_automation\build_mixed_local_openimages_dataset.py)
+- `python -m rbccps_od build-mixed`
 
 Locked defaults:
 
@@ -106,7 +106,7 @@ This means:
 
 Use:
 
-- [train_yolov26.py](F:\RBCCPS_Directory\scripts\annotation_automation\train_yolov26.py)
+- `python -m rbccps_od train`
 
 It now auto-rewrites Windows-authored dataset YAML `path:` entries when training on Linux, so the AnyDesk/HPC Linux runs do not need manual temporary YAML rewriting.
 
@@ -115,7 +115,7 @@ It now auto-rewrites Windows-authored dataset YAML `path:` entries when training
 ### A. Sync the v3 review workspace
 
 ```bash
-python scripts/annotation_automation/prepare_annotation_corpus_v3_reviews.py
+python -m rbccps_od sync-v3-reviews
 ```
 
 ### B. Complete the remaining manual review
@@ -129,13 +129,13 @@ Required files:
 ### C. Build the strict local v3 corpus
 
 ```bash
-python scripts/annotation_automation/build_annotation_corpus_v3.py
+python -m rbccps_od build-v3-corpus
 ```
 
 If you want only a preview build before review is complete:
 
 ```bash
-python scripts/annotation_automation/build_annotation_corpus_v3.py --allow-unreviewed-positives --allow-missing-scene-buckets
+python -m rbccps_od build-v3-corpus --allow-unreviewed-positives --allow-missing-scene-buckets
 ```
 
 Do not treat that preview build as the next serious baseline.
@@ -143,31 +143,31 @@ Do not treat that preview build as the next serious baseline.
 ### D. Train the local-only baseline
 
 ```bash
-python scripts/annotation_automation/train_yolov26.py --model datasets/yolov26_weights/yolo26m.pt --data datasets/derived/annotation_automation_v3/yolo_dataset/dataset.yaml --imgsz 1280 --epochs 60 --batch 4 --device 0 --project runs --name streetlight_detector_v3_local --patience 20 --workers 8 --close-mosaic 10
+python -m rbccps_od train --model datasets/yolov26_weights/yolo26m.pt --data datasets/derived/annotation_automation_v3/yolo_dataset/dataset.yaml --imgsz 1280 --epochs 60 --batch 4 --device 0 --project runs --name streetlight_detector_v3_local --patience 20 --workers 8 --close-mosaic 10
 ```
 
 ### E. If recall is still weak, build the tiled train split
 
 ```bash
-python scripts/annotation_automation/build_tiled_training_dataset.py --dataset-root datasets/derived/annotation_automation_v3/yolo_dataset --output-root datasets/derived/annotation_automation_v3_tiled/yolo_dataset
+python -m rbccps_od build-tiled --dataset-root datasets/derived/annotation_automation_v3/yolo_dataset --output-root datasets/derived/annotation_automation_v3_tiled/yolo_dataset
 ```
 
 Then train:
 
 ```bash
-python scripts/annotation_automation/train_yolov26.py --model datasets/yolov26_weights/yolo26m.pt --data datasets/derived/annotation_automation_v3_tiled/yolo_dataset/dataset.yaml --imgsz 1024 --epochs 60 --batch 4 --device 0 --project runs --name streetlight_detector_v3_tiled --patience 20 --workers 8 --close-mosaic 10
+python -m rbccps_od train --model datasets/yolov26_weights/yolo26m.pt --data datasets/derived/annotation_automation_v3_tiled/yolo_dataset/dataset.yaml --imgsz 1024 --epochs 60 --batch 4 --device 0 --project runs --name streetlight_detector_v3_tiled --patience 20 --workers 8 --close-mosaic 10
 ```
 
 ### F. Only after a strong local baseline exists, test light external augmentation
 
 ```bash
-python scripts/annotation_automation/build_mixed_local_openimages_dataset.py --local-root datasets/derived/annotation_automation_v3/yolo_dataset --external-root datasets/derived/openimages_streetlight_external --output-root datasets/derived/annotation_automation_v3_mixed
+python -m rbccps_od build-mixed --local-root datasets/derived/annotation_automation_v3/yolo_dataset --external-root datasets/derived/openimages_streetlight_external --output-root datasets/derived/annotation_automation_v3_mixed
 ```
 
 Then train:
 
 ```bash
-python scripts/annotation_automation/train_yolov26.py --model datasets/yolov26_weights/yolo26m.pt --data datasets/derived/annotation_automation_v3_mixed/dataset.yaml --imgsz 1280 --epochs 60 --batch 4 --device 0 --project runs --name streetlight_detector_v3_mixed --patience 20 --workers 8 --close-mosaic 10
+python -m rbccps_od train --model datasets/yolov26_weights/yolo26m.pt --data datasets/derived/annotation_automation_v3_mixed/dataset.yaml --imgsz 1280 --epochs 60 --batch 4 --device 0 --project runs --name streetlight_detector_v3_mixed --patience 20 --workers 8 --close-mosaic 10
 ```
 
 ## Manual blockers that still remain

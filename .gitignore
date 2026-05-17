@@ -9,8 +9,12 @@ datasets/yolov26_weights/
 # Local environments and caches
 .venvs/
 .miktex-local/
+_ultralytics_config/
+.cache/
 __pycache__/
 *.py[cod]
+.pytest_cache/
+.ruff_cache/
 
 # Annotation automation pipeline artifacts
 datasets/derived/annotation_automation/

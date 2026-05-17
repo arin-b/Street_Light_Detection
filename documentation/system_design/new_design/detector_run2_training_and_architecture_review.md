@@ -65,7 +65,7 @@ Why:
 On Linux:
 
 ```bash
-python scripts/annotation_automation/train_yolov26.py \
+python -m rbccps_od train \
   --model datasets/yolov26_weights/yolo26m.pt \
   --data /absolute/path/to/annotation_automation_v2/yolo_dataset/dataset.yaml \
   --imgsz 1280 \
