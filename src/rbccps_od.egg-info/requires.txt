@@ -1,0 +1,7 @@
+
+[dev]
+pytest>=8.0.0
+
+[train]
+ultralytics>=8.2.0
+pillow>=10.0.0

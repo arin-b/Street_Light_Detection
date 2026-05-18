@@ -29,3 +29,5 @@ final_paper/*.log
 
 # Downloaded literature assets
 documentation/literature_review/papers/
+
+streetlight-env/
