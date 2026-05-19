@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from collections import defaultdict
 from pathlib import Path
+from typing import Any
 
 from rbccps_measurement.attribution.counterfactual import estimate_counterfactual_attribution
 from rbccps_measurement.contracts.calibration_policy import CalibrationPolicy
@@ -11,6 +12,7 @@ from rbccps_measurement.contracts.output_schema import MeasurementReport
 from rbccps_measurement.decomposition.source_slots import estimate_source_evidence
 from rbccps_measurement.features.distributional_coverage import estimate_useful_features
 from rbccps_measurement.fusion.conformal import decide_abstention
+from rbccps_measurement.fusion.model_slot_fusion import fuse_model_slots
 from rbccps_measurement.fusion.monotonic_heads import monotonic_fuse
 from rbccps_measurement.geometry.lamp_footprint_field import estimate_footprint
 from rbccps_measurement.ingest.validation import validate_clip_manifest
@@ -46,8 +48,9 @@ def _bbox_center_x_pixels(track: DetectorTrackRecord, frame_width: int) -> float
 
 
 class MeasurementPipeline:
-    def __init__(self, measurement_run_id: str = "measurement_run") -> None:
+    def __init__(self, measurement_run_id: str = "measurement_run", slot_metrics: dict[str, Any] | None = None) -> None:
         self.measurement_run_id = measurement_run_id
+        self.slot_metrics = slot_metrics
 
     def run(self, manifest: ClipManifest) -> list[MeasurementReport]:
         validate_clip_manifest(manifest)
@@ -72,6 +75,10 @@ class MeasurementPipeline:
 
             observation_completeness = min(1.0, len(track_records) / max(1, max(track.track_age or len(track_records) for track in track_records)))
             fusion = monotonic_fuse(features, attribution, observation_completeness)
+            detector_score = max((track.track_confidence or track.detector_score) for track in track_records)
+            slot_fusion = fuse_model_slots(fusion, self.slot_metrics, detector_score)
+            fusion = slot_fusion.adjusted_result
+            flags.extend(slot_fusion.flags)
             decision = decide_abstention(fusion.overall_category, fusion.confidence, flags)
 
             camera_qualities = [frame.camera.metadata_quality for frame in frame_records]
@@ -92,6 +99,7 @@ class MeasurementPipeline:
             metrics = features.to_dict()
             metrics.update({
                 "attribution_confidence": round(attribution.score, 4),
+                **slot_fusion.metrics,
                 "overall_useful_illumination_score": round(fusion.overall_score, 4),
                 "overall_category": fusion.overall_category,
             })
@@ -141,7 +149,8 @@ class MeasurementPipeline:
                 traceability={
                     "model_versions": {
                         "pipeline": "deterministic_research_skeleton_v1",
-                        "trained_weights": None,
+                        "trained_weights": self.slot_metrics.get("weights_used") if self.slot_metrics else None,
+                        "fusion": "model_slot_fusion_v1" if self.slot_metrics else "deterministic_only",
                     },
                     "feature_snapshot_ref": f"features/{track_id}_{manifest.clip_id}.json",
                     "policy_id": manifest.policy_id,
@@ -152,10 +161,21 @@ class MeasurementPipeline:
         return reports
 
 
+def _load_slot_metrics(manifest_path: Path, manifest: ClipManifest) -> dict[str, Any] | None:
+    uri = manifest.optional_calibration.map_priors.get("learned_slot_metrics_uri")
+    if not uri:
+        return None
+    path = Path(str(uri))
+    if not path.is_absolute():
+        path = manifest_path.parent / path
+    return json.loads(path.read_text(encoding="utf-8-sig"))
+
+
 def run_clip_to_directory(manifest_path: str | Path, output_dir: str | Path, measurement_run_id: str | None = None) -> list[MeasurementReport]:
+    manifest_path = Path(manifest_path)
     manifest = ClipManifest.load(manifest_path)
     run_id = measurement_run_id or f"run_{manifest.clip_id}"
-    reports = MeasurementPipeline(run_id).run(manifest)
+    reports = MeasurementPipeline(run_id, slot_metrics=_load_slot_metrics(manifest_path, manifest)).run(manifest)
     out = Path(output_dir)
     (out / "masks").mkdir(parents=True, exist_ok=True)
     (out / "features").mkdir(parents=True, exist_ok=True)

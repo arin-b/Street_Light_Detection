@@ -150,3 +150,29 @@ def test_pseudo_manifest_from_images_runs_measurement_pipeline(tmp_path: Path):
     reports = run_clip_to_directory(manifest_path, tmp_path / "pseudo_run")
     assert len(reports) == 1
     assert reports[0].lamp_track_id == "pseudo_lamp_1"
+
+
+def test_measure_clip_fuses_learned_slot_metrics_when_manifest_points_to_sidecar(tmp_path: Path):
+    payload = make_manifest_payload()
+    payload["tracks"][0]["detector_score"] = 0.92
+    payload["tracks"][0]["track_confidence"] = 0.92
+    payload["optional_calibration"]["map_priors"] = {"learned_slot_metrics_uri": "slot_outputs/slot_metrics.json"}
+    manifest_path = write_manifest(tmp_path, payload)
+    slot_dir = tmp_path / "slot_outputs"
+    slot_dir.mkdir()
+    (slot_dir / "slot_metrics.json").write_text(
+        json.dumps({
+            "weights_used": {"streetlight_detector_v3": "models/measurement/pretrained/streetlight_detector_v3/hpc_pull/best.pt"},
+            "lowlight_zero_dce_epoch99": {"input_luma_mean": 0.18, "enhanced_luma_mean": 0.46},
+            "retinex_decom_9200": {"illumination_mean": 0.62, "reflectance_mean": 0.71},
+            "feature_resnet18_imagenet": {"embedding_l2_norm": 22.0},
+            "segmentation_deeplabv3_mobilenet_v3": {"segmentation_class_histogram": {"0": 0.82, "7": 0.18}},
+        }),
+        encoding="utf-8",
+    )
+
+    report = run_clip_to_directory(manifest_path, tmp_path / "slot_run")[0].to_dict()
+    assert report["metrics"]["model_slot_fusion_active"] == 1.0
+    assert report["metrics"]["slot_detector_support"] == 0.92
+    assert "model_slot_fusion_active" in report["uncertainty_flags"]
+    assert report["traceability"]["model_versions"]["fusion"] == "model_slot_fusion_v1"
