@@ -47,3 +47,13 @@
 \contentsline {subsection}{\numberline {10.4}Integration with object-detection block outputs}{27}{subsection.10.4}%
 \contentsline {section}{\numberline {11}Open questions and assumptions}{27}{section.11}%
 \contentsline {section}{Final recommendation}{28}{Item.7}%
+\contentsline {section}{\numberline {12}Potential datasets for use}{28}{section.12}%
+\contentsline {section}{\numberline {13}Small-team data collection plan}{30}{section.13}%
+\contentsline {subsection}{\numberline {13.1}Recommended collection scale}{31}{subsection.13.1}%
+\contentsline {subsection}{\numberline {13.2}Four custom datasets to collect}{31}{subsection.13.2}%
+\contentsline {subsection}{\numberline {13.3}Phone capture protocol}{32}{subsection.13.3}%
+\contentsline {subsection}{\numberline {13.4}Route selection}{32}{subsection.13.4}%
+\contentsline {subsection}{\numberline {13.5}Sparse lux collection protocol}{33}{subsection.13.5}%
+\contentsline {subsection}{\numberline {13.6}Annotation protocol}{34}{subsection.13.6}%
+\contentsline {subsection}{\numberline {13.7}Recommended workflow for a one-to-three-person team}{34}{subsection.13.7}%
+\contentsline {subsection}{\numberline {13.8}What the first model should and should not claim}{35}{subsection.13.8}%

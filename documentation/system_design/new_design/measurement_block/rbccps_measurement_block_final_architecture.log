@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.5.13)  18 MAY 2026 17:47
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.5.13)  18 MAY 2026 20:00
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -796,13 +796,13 @@ Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             See the microtype manual for details.
  [3]
 [4]
-<figures/module_12.png, id=391, 1453.43pt x 1090.0725pt>
+<figures/module_12.png, id=441, 1453.43pt x 1090.0725pt>
 File: figures/module_12.png Graphic file (type png)
 <use figures/module_12.png>
 Package pdftex.def Info: figures/module_12.png  used on input line 349.
 (pdftex.def)             Requested size: 474.64801pt x 355.98257pt.
  [5]
-<figures/measurement_block.png, id=450, 1923.185pt x 824.07875pt>
+<figures/measurement_block.png, id=500, 1923.185pt x 824.07875pt>
 File: figures/measurement_block.png Graphic file (type png)
 <use figures/measurement_block.png>
 Package pdftex.def Info: figures/measurement_block.png  used on input line 377.
@@ -842,69 +842,69 @@ Underfull \hbox (badness 10000) in paragraph at lines 398--398
  []
 
 [7 <./figures/measurement_block.png (PNG copy)>] [8]
-<figures/module_1.png, id=474, 1453.43pt x 1090.0725pt>
+<figures/module_1.png, id=524, 1453.43pt x 1090.0725pt>
 File: figures/module_1.png Graphic file (type png)
 <use figures/module_1.png>
 Package pdftex.def Info: figures/module_1.png  used on input line 460.
 (pdftex.def)             Requested size: 474.64801pt x 355.98257pt.
  [9{C:/Users/ahuja/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathex.e
 nc}]
-<figures/module_2.png, id=483, 1453.43pt x 1090.0725pt>
+<figures/module_2.png, id=533, 1453.43pt x 1090.0725pt>
 File: figures/module_2.png Graphic file (type png)
 <use figures/module_2.png>
 Package pdftex.def Info: figures/module_2.png  used on input line 488.
 (pdftex.def)             Requested size: 474.64801pt x 355.98257pt.
  [10 <./figures/module_1.png (PNG copy)>] [11 <./figures/module_2.png (PNG copy
 )>]
-<figures/module_3.png, id=495, 1453.43pt x 1090.0725pt>
+<figures/module_3.png, id=545, 1453.43pt x 1090.0725pt>
 File: figures/module_3.png Graphic file (type png)
 <use figures/module_3.png>
 Package pdftex.def Info: figures/module_3.png  used on input line 511.
 (pdftex.def)             Requested size: 474.64801pt x 355.98257pt.
  [12 <./figures/module_3.png (PNG copy)>]
-<figures/module_4.png, id=502, 1453.43pt x 1090.0725pt>
+<figures/module_4.png, id=552, 1453.43pt x 1090.0725pt>
 File: figures/module_4.png Graphic file (type png)
 <use figures/module_4.png>
 Package pdftex.def Info: figures/module_4.png  used on input line 540.
 (pdftex.def)             Requested size: 474.64801pt x 355.98257pt.
  [13 <./figures/module_4.png (PNG copy)>]
-<figures/module_5.png, id=509, 1453.43pt x 1090.0725pt>
+<figures/module_5.png, id=559, 1453.43pt x 1090.0725pt>
 File: figures/module_5.png Graphic file (type png)
 <use figures/module_5.png>
 Package pdftex.def Info: figures/module_5.png  used on input line 566.
 (pdftex.def)             Requested size: 474.64801pt x 355.98257pt.
  [14 <./figures/module_5.png (PNG copy)>]
-<figures/module_6.png, id=516, 1453.43pt x 1090.0725pt>
+<figures/module_6.png, id=566, 1453.43pt x 1090.0725pt>
 File: figures/module_6.png Graphic file (type png)
 <use figures/module_6.png>
 Package pdftex.def Info: figures/module_6.png  used on input line 591.
 (pdftex.def)             Requested size: 474.64801pt x 355.98257pt.
  [15 <./figures/module_6.png (PNG copy)>]
-<figures/module_7.png, id=523, 1453.43pt x 1090.0725pt>
+<figures/module_7.png, id=573, 1453.43pt x 1090.0725pt>
 File: figures/module_7.png Graphic file (type png)
 <use figures/module_7.png>
 Package pdftex.def Info: figures/module_7.png  used on input line 616.
 (pdftex.def)             Requested size: 474.64801pt x 355.98257pt.
  [16 <./figures/module_7.png (PNG copy)>]
-<figures/module_8.png, id=531, 1453.43pt x 1090.0725pt>
+<figures/module_8.png, id=581, 1453.43pt x 1090.0725pt>
 File: figures/module_8.png Graphic file (type png)
 <use figures/module_8.png>
 Package pdftex.def Info: figures/module_8.png  used on input line 639.
 (pdftex.def)             Requested size: 474.64801pt x 355.98257pt.
  [17 <./figures/module_8.png (PNG copy)>]
-<figures/module_9.png, id=538, 1453.43pt x 1090.0725pt>
+<figures/module_9.png, id=588, 1453.43pt x 1090.0725pt>
 File: figures/module_9.png Graphic file (type png)
 <use figures/module_9.png>
 Package pdftex.def Info: figures/module_9.png  used on input line 669.
 (pdftex.def)             Requested size: 474.64801pt x 355.98257pt.
  [18 <./figures/module_9.png (PNG copy)>]
-<figures/module_10.png, id=545, 1453.43pt x 1090.0725pt>
+<figures/module_10.png, id=595, 1453.43pt x 1090.0725pt>
 File: figures/module_10.png Graphic file (type png)
 <use figures/module_10.png>
 Package pdftex.def Info: figures/module_10.png  used on input line 690.
 (pdftex.def)             Requested size: 474.64801pt x 355.98257pt.
  [19 <./figures/module_10.png (PNG copy)>]
-<figures/module_11.png, id=552, 1453.43pt x 1090.0725pt>
+<figures/module_11.png, id=602, 1453.43pt x 1090.0725pt>
 File: figures/module_11.png Graphic file (type png)
 <use figures/module_11.png>
 Package pdftex.def Info: figures/module_11.png  used on input line 711.
@@ -930,21 +930,22 @@ Underfull \hbox (badness 10000) in paragraph at lines 920--920
 []|\T1/lmr/m/n/8 (+20) Phone/device vari-a-tion shifts
  []
 
-[25] [26] [27] [28] (rbccps_measurement_block_final_architecture.aux)
+[25] [26] [27] [28] [29] [30] [31] [32] [33] [34] [35]
+(rbccps_measurement_block_final_architecture.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2025-12-24>
  ***********
 Package rerunfilecheck Info: File `rbccps_measurement_block_final_architecture.
 out' has not changed.
-(rerunfilecheck)             Checksum: 4CA47DBCBC7225B31F65F55A188B12FA;10177.
+(rerunfilecheck)             Checksum: BB4F4F886226CC91FF64EB4D89CE1C33;12348.
  ) 
 Here is how much of TeX's memory you used:
- 18639 strings out of 467871
- 297729 string characters out of 5418376
- 954625 words of memory out of 5000000
- 46694 multiletter control sequences out of 15000+600000
- 706258 words of font info for 211 fonts, out of 8000000 for 9000
+ 18707 strings out of 467871
+ 298499 string characters out of 5418376
+ 954637 words of memory out of 5000000
+ 46708 multiletter control sequences out of 15000+600000
+ 706842 words of font info for 218 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  75i,12n,79p,1117b,1991s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/ahuja/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx10.pf
@@ -963,10 +964,10 @@ ers/ahuja/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt10.pfb><C:/Us
 ers/ahuja/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt9.pfb><C:/Use
 rs/ahuja/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msbm
 10.pfb>
-Output written on rbccps_measurement_block_final_architecture.pdf (31 pages, 18
-844005 bytes).
+Output written on rbccps_measurement_block_final_architecture.pdf (38 pages, 18
+891582 bytes).
 PDF statistics:
- 821 PDF objects out of 1000 (max. 8388607)
- 335 named destinations out of 1000 (max. 500000)
- 44490 words of extra memory for PDF output out of 51595 (max. 10000000)
+ 1021 PDF objects out of 1200 (max. 8388607)
+ 375 named destinations out of 1000 (max. 500000)
+ 44570 words of extra memory for PDF output out of 51595 (max. 10000000)
 

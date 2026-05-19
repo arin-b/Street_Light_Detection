@@ -12,7 +12,11 @@ dependencies = []
 
 [project.optional-dependencies]
 train = ["ultralytics>=8.2.0", "pillow>=10.0.0"]
+measurement = ["numpy>=1.26.0", "pillow>=10.0.0", "opencv-python>=4.9.0", "torch>=2.3.0"]
 dev = ["pytest>=8.0.0"]
+
+[project.scripts]
+rbccps-measurement = "rbccps_measurement.cli.main:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

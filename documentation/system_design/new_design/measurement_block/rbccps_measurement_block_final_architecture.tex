@@ -1064,4 +1064,247 @@ The final architecture should combine the report's system discipline with the ML
 
 The final research identity should be stated as follows: the RBCCPS measurement block is not a lux meter and not merely a detector add-on. It is an uncertainty-aware, per-lamp useful-illumination attribution system for mixed-source urban nighttime video.
 
+\section{Potential datasets for use}
+
+The dataset search found useful partial sources, but no single open dataset that fully matches the measurement-block training target. In particular, none of the available sources combine night video, tracked streetlights, camera metadata, GPS/IMU, public-space masks, confounder labels, per-lamp affected-region attribution, and calibrated lux or illuminance references. The table below should therefore be treated as a sourcing plan: some datasets support pretraining, some provide weak external references, and some published datasets should be requested from authors.
+
+\begingroup
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.12}
+\begin{center}
+\captionof{table}{Potential open, partial, and requestable datasets for the RBCCPS measurement block.}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.23\textwidth}>{\raggedright\arraybackslash}p{0.17\textwidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.27\textwidth}}
+\toprule
+Dataset or source & Availability & Useful for measurement block & Missing or recommended action \\
+\midrule
+\href{https://par.nsf.gov/servlets/purl/10635625}{NightLight} & Published paper; dataset link not found in the search & Smartphone ambient-light sensing, GPS/IMU reasoning, pedestrian lighting maps, and validation of phone-based lighting measurement workflows & Not a public CV video dataset with lamp tracks, masks, per-lamp attribution, or dense labels. High-priority author-request target. \\
+\href{https://zenodo.org/records/6046758}{UMBRELLA / StreetCare public streetlight images} & Open Zenodo dataset & Lamp operational status pretraining; about 350k fixed-node JPEG streetlight images with GPS metadata and ON/OFF status & Camera faces upward toward the lamp, not road or footpath. No useful-illumination footprint, public-space masks, or lux reference. \\
+\href{https://arxiv.org/abs/2512.12205}{Multi-Year Urban Streetlight Imagery Dataset} & Published paper with public Zenodo references & Long-term lamp-status robustness, weather and seasonal variation, fixed-angle streetlight monitoring, and drift analysis & Fixed-node lamp imagery rather than mobile road-space measurement. Useful for status robustness, not per-lamp useful-illumination attribution. \\
+\href{https://ual.sg/publication/2024-scs-night-svi/}{Nighttime Street View Imagery} / \href{https://github.com/fzc961020/Nighttime-SVI}{Nighttime-SVI} & Public project and GitHub repository & Nighttime street-view representation learning, street-level brightness analysis, and lighting-pattern features from 2,831 panoramic images & Not per-lamp lux-calibrated video and not designed around detector tracks or public-space task visibility. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{center}
+\captionof{table}{Potential datasets for use, continued: calibrated and GIS-style references.}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.23\textwidth}>{\raggedright\arraybackslash}p{0.17\textwidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.27\textwidth}}
+\toprule
+Dataset or source & Availability & Useful for measurement block & Missing or recommended action \\
+\midrule
+\href{https://www.researchgate.net/publication/398053026_Mapping_street_lighting_Illuminance_characterization_in_urban_squares_in_the_Brussels_Capital_Region}{AI LUX / Brussels street illuminance mapping} & Published work; public download not found in the search & 360-degree nighttime imagery paired with measured illuminance grids; close to image-to-lux calibration needs & Request data and protocol from authors. Likely highly relevant for calibrated reference learning. \\
+\href{https://research.utwente.nl/en/publications/mobile-mapping-of-night-time-road-environment-lighting-conditions}{Mobile mapping of night-time road environment lighting conditions} & Published work; dataset not found as open download & Luminance-calibrated panoramic mobile mapping with LiDAR/GNSS/IMU-style capture; strong methodological match & Request dataset, calibration details, or data-collection protocol. Likely not phone-video based. \\
+\href{https://rosap.ntl.bts.gov/view/dot/86187}{SALUSLux supporting dataset/software} & Public software and supporting dataset & Synthetic/reference lighting design, pedestrian-lighting simulation, and photometric IES-based priors & Not real phone video. Use for simulation, threshold design, and sanity checks rather than direct supervised training. \\
+\href{https://discover.data.vic.gov.au/dataset/street-lights-with-emitted-lux-level-council-owned-lights-only}{City of Melbourne street lights with emitted lux level} & Open GIS dataset & Municipal lamp asset priors and weak emitted-lux reference fields & No imagery, video, tracks, camera metadata, or affected-region attribution. Use as weak external reference or GIS prior. \\
+\href{https://www.data.gouv.fr/datasets/diagnostic-de-la-luminosite-sur-rennes-metropole/}{Rennes Metropole luminosity diagnostic} & Open data portal & Mapped street-level lux ranges and route-level luminosity reference & Area/route-level lux map, not per-lamp video or attribution. Useful as weak validation context. \\
+\href{https://www.openstreetmap.org/}{OpenStreetMap and municipal streetlight inventories} & Open or municipal-source dependent & Lamp-location priors, mapped assets, road context, and optional pole metadata where available & Often incomplete and inconsistent. No direct visual measurement, lux, status, or useful-illumination labels unless joined with field data. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{center}
+\captionof{table}{Potential datasets for use, continued: road-scene and nighttime segmentation pretraining.}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.23\textwidth}>{\raggedright\arraybackslash}p{0.17\textwidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.27\textwidth}}
+\toprule
+Dataset or source & Availability & Useful for measurement block & Missing or recommended action \\
+\midrule
+\href{https://bdd-data.berkeley.edu/}{BDD100K} and \href{https://huggingface.co/datasets/Hanshiya/bdd100k}{Hanshiya/bdd100k} & Official dataset and Hugging Face subset & Large-scale driving-video pretraining with night, weather, road-scene, and detection diversity & No lux labels, no streetlight-specific attribution, and no public-space useful-illumination target. Use for road-scene and nighttime robustness pretraining. \\
+\href{https://huggingface.co/datasets/moritzef/mapillary_vistas_semantic_edges_and_segmentation}{Mapillary Vistas semantic edges and segmentation on Hugging Face} & Hugging Face dataset & Road, sidewalk, building, vehicle, vegetation, and other public-space masks for segmentation pretraining & Not focused on nighttime streetlight measurement and no lux or lamp attribution. \\
+\href{https://arxiv.org/abs/2003.06883}{NightCity} & Published nighttime segmentation dataset & Nighttime semantic segmentation pretraining with 4,297 pixel-labeled nighttime urban images & No GPS/IMU, camera metadata, lux reference, lamp tracks, or per-lamp affected-region labels. \\
+\href{https://arxiv.org/abs/2005.14553}{Dark Zurich} & Published nighttime segmentation benchmark & Night/twilight/day correspondence, nighttime semantic segmentation, and uncertainty-aware evaluation ideas & No streetlight attribution, no lux, and no lamp-conditioned labels. Useful for nighttime domain adaptation. \\
+\href{https://huggingface.co/datasets/lumimusta/Low-light_Scene_Text_Dataset}{Low-light Scene Text Dataset} & Hugging Face dataset & Peripheral low-light visual robustness and scene-text visibility cues & Not a streetlight or road-illumination dataset. Use only if text/sign visibility becomes a proxy task. \\
+\href{https://huggingface.co/datasets/nvidia/PhysicalAI-Autonomous-Vehicles}{NVIDIA PhysicalAI Autonomous Vehicles} & Hugging Face dataset with license and access constraints to verify & Large AV-style multi-sensor data that may help with nighttime scene representation and sensor-fusion pretraining & Not streetlight-measurement-specific; access and licensing must be checked before use. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{center}
+\captionof{table}{Potential datasets for use, continued: Kaggle sources and small auxiliary datasets.}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.23\textwidth}>{\raggedright\arraybackslash}p{0.17\textwidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.27\textwidth}}
+\toprule
+Dataset or source & Availability & Useful for measurement block & Missing or recommended action \\
+\midrule
+\href{https://www.kaggle.com/datasets/adembakrc/nighttime-driving}{Kaggle Nighttime Driving Images Dataset} & Kaggle dataset & Low-light driving-image robustness; small pretraining or augmentation source & Only about 400 images; no lux, lamp status, masks, GPS/IMU, or attribution labels. \\
+\href{https://www.kaggle.com/datasets/ipythonx/nighttime-driving-dataset}{Kaggle Nighttime Driving Dataset} & Kaggle dataset & Nighttime segmentation/domain adaptation experiments & Small dataset; no lamp-specific measurement labels or calibrated references. \\
+\href{https://www.kaggle.com/datasets/prefoxideas/night-highway-and-tunnel-driving-frames-dataset}{Kaggle Night Highway and Tunnel Driving Frames} & Kaggle dataset & Low-light road-frame robustness and color/brightness augmentation & Highway/tunnel frames do not provide per-lamp urban lighting attribution, public-space masks, or lux references. \\
+\href{https://www.kaggle.com/datasets/notitltd/demo-street-light-detection-5-crop-images-and-data}{Kaggle DEMO Street Light Detection} & Kaggle demo dataset & Minimal streetlight-crop sanity check and possible lead to a proprietary source & Only five crop images. Not enough for model training; contact owner only if proprietary access is acceptable. \\
+\href{https://www.kaggle.com/datasets/zunairashakeel08/intelligent-street-light-control-system-dataset}{Kaggle Intelligent Street Light Control System Dataset} & Kaggle dataset & Control-logic or synthetic tabular experimentation & Not useful for the visual measurement block. No image/video, lux reference, road-space masks, or per-lamp attribution. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\endgroup
+
+The practical training plan is therefore to pretrain segmentation and low-light perception using BDD100K, Mapillary-style masks, NightCity, Dark Zurich, and small Kaggle nighttime-driving sets; pretrain lamp status using UMBRELLA-style fixed-node streetlight imagery; use OpenStreetMap, municipal inventories, Melbourne emitted-lux data, and Rennes luminosity data as weak priors; and request NightLight, AI LUX, and mobile-mapping datasets from authors because they are closest to the calibrated measurement problem.
+
+\section{Small-team data collection plan}
+
+The practical assumption for the first RBCCPS measurement-block dataset is that it will be collected by one person, or by a very small team of two to three people. The plan should therefore not require a calibrated survey vehicle, dense photometric equipment, or exhaustive frame-level labelling. The dataset should be deliberately small, repeated, and well structured. Its purpose is to fill the exact gap left by the open datasets: phone-specific nighttime video, detector tracks, camera and motion metadata, public-space masks, confounder labels, sparse lux references, and per-lamp useful-illumination attribution.
+
+The open datasets should reduce pretraining burden, but they should not define the final supervised target. BDD100K, Mapillary-style segmentation datasets, NightCity, Dark Zurich, and small Kaggle nighttime-driving sets can teach night-road appearance, road/sidewalk segmentation, and low-light robustness. UMBRELLA-style fixed streetlight imagery can help with lamp ON/OFF and bloom/saturation status. Nighttime-SVI can inform street-level lighting features. OSM, municipal inventories, Melbourne emitted-lux data, and Rennes luminosity maps can provide weak GIS priors. The custom field dataset must provide the missing measurement supervision.
+
+\subsection{Recommended collection scale}
+
+The first dataset should be staged. The MVP stage is for proving that the pipeline can produce stable ranked outputs. The pilot stage is the realistic target for a one-to-three-person team. A publication-grade local dataset should only be attempted after the capture and annotation workflow has stopped changing.
+
+\begingroup
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{center}
+\captionof{table}{Recommended dataset scale for a small RBCCPS measurement-block team.}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.16\textwidth}>{\raggedright\arraybackslash}p{0.13\textwidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.24\textwidth}}
+\toprule
+Stage & Field time & Collection target & What it should prove \\
+\midrule
+MVP & 2--3 weeks & 300--600 unique lamps, 1,500--3,000 lamp-track observations, 20--30 calibrated sites, and 100--200 lux points & The pipeline can rank good and bad lighting, localize affected public-space regions, and abstain in obviously unsafe cases. \\
+Pilot & 6--8 weeks & 1,000--2,500 unique lamps, 6,000--12,000 lamp tracks, 80--150 calibrated sites, and 500--1,000 lux points & The model generalizes across routes, phones, traffic, shops, trees, wet/dry surfaces, and repeated nights. \\
+Publication-grade local dataset & 3--6 months & 3,000--8,000 unique lamps, 20,000--40,000 lamp tracks, 300--500 calibrated sites, and 2,000--4,000 lux points & Strong evaluation, calibration, uncertainty analysis, ablations, and defensible claims about useful-illumination attribution. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\endgroup
+
+The pilot scale is the recommended operating target. It is large enough to expose route, phone, weather, and confounder variation, but still small enough that a two-person team can collect and annotate it with a semi-automatic workflow.
+
+\subsection{Four custom datasets to collect}
+
+The custom data should be organized as four linked datasets rather than one monolithic folder. Each item should share route ID, pass ID, timestamp basis, phone ID, and calibration tier.
+
+\begingroup
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{center}
+\captionof{table}{Custom datasets required beyond open-source pretraining data.}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.22\textwidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.27\textwidth}}
+\toprule
+Dataset & Required contents & Minimum pilot target \\
+\midrule
+Phone route-video dataset & Night videos from walking, cycling, or slow vehicle capture; GPS, IMU, route ID, pass ID, phone model, capture app, timestamp offset, camera settings where available, and weather/traffic notes & 80--150 short route clips, preferably 1--3 minutes each, covering 1,000--2,500 unique lamps. \\
+Lamp-track dataset & Detector outputs and corrected tracks: frame ID, timestamp, bbox, track ID, detector confidence, track age, ON/OFF/uncertain status, occlusion, blur, glare, and saturation flags & 6,000--12,000 lamp-track observations, sampled from repeated route passes. \\
+Useful-illumination annotation dataset & Public-space masks, road/sidewalk/crossing regions, affected-region labels, task visibility labels, and confounder labels such as headlights, shop lights, signs, reflections, tree occlusion, wet-road glare, and construction lighting & 5,000--8,000 labelled keyframes, with 1,000--2,000 affected-region labels. \\
+Sparse lux/reference dataset & Calibrated lux-meter or reference readings at selected sites, linked to route/pass/frame IDs, with point type, GPS, timestamp, and local condition notes & 80--150 calibrated sites and 500--1,000 total lux points for the pilot. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\endgroup
+
+\subsection{Phone capture protocol}
+
+Android phones are preferred for the first research dataset because they give better access to camera and sensor metadata. The ideal path is a custom Camera2 capture app that logs frames or video, exposure time, ISO/sensor sensitivity, focal length, AE/AWB/HDR state, timestamps, GPS, IMU, and ambient-light sensor readings. If that app is not available at the start, use a regular video app for capture and a separate sensor-logging app for GPS/IMU/ambient-light logging, then synchronize streams by timestamp and a visible start gesture.
+
+The capture geometry should be consistent. Use the rear wide camera only. Do not use digital zoom. Hold or mount the phone at roughly 1.4--1.6 m height for walking captures, or at a fixed dashboard height for vehicle captures. A chest mount, simple handle, small tripod, phone clamp, or gimbal is acceptable. The important requirement is not cinematic stability; it is repeatable viewpoint, stable timestamps, and enough public-space context around each detected lamp.
+
+Each clip should be short. A route clip of 1--3 minutes is easier to synchronize, inspect, annotate, and rerun than a long monolithic video. Use 1080p at 30 fps unless the phone cannot sustain it. Start the sensor logger first, then start the video, then perform a visible synchronization action such as covering the lens for two seconds or pointing at a bright fixed light. Record route notes immediately after the pass.
+
+Recommended filename pattern:
+
+\begin{lstlisting}
+route_012_phone_pixel7_pass_02_2026-05-18_video.mp4
+route_012_phone_pixel7_pass_02_2026-05-18_sensors.csv
+route_012_phone_pixel7_pass_02_2026-05-18_notes.json
+\end{lstlisting}
+
+Each route should be repeated. The minimum useful repeat pattern is the same route in the same direction on two different nights. The better pattern is the same route under normal dry conditions, wet-road conditions, high traffic/headlight conditions, shopfront-heavy conditions, low-traffic quiet conditions, and tree-occlusion conditions. The repeated passes are essential because the measurement block must distinguish lamp contribution from transient exposure, vehicle headlights, shops, reflections, and occlusions.
+
+\subsection{Route selection}
+
+The dataset should cover operational diversity before it covers sheer volume. A small team should choose 8--15 compact routes and collect them repeatedly. Each route should be short enough to walk or drive safely several times, but diverse enough to contain multiple streetlight geometries.
+
+Prioritize the following route types:
+\begin{itemize}
+  \item residential streets with low pedestrian lighting and sparse shops;
+  \item arterial or collector roads with vehicle headlights and larger poles;
+  \item market or commercial streets with shopfront spill light and signs;
+  \item campus or institutional roads with controlled access and repeatability;
+  \item footpath-heavy corridors where pedestrian visibility matters;
+  \item crossings and junctions where useful illumination is safety-critical;
+  \item tree-lined streets with partial lamp occlusion;
+  \item underpasses, flyover edges, or shadowed areas if available;
+  \item one-sided, staggered, median, high-mast, dense, and decorative lamp layouts.
+\end{itemize}
+
+For the pilot, the dataset should include at least two phones if possible. One phone can be the main capture device. The second phone is useful for device-generalization checks. If only one phone is available, keep the capture protocol strict and avoid claiming device-independent calibration.
+
+\subsection{Sparse lux collection protocol}
+
+The first useful system should not attempt to train dense lux from images. Dense image-to-lux learning is too hard for a small team and is brittle under unknown exposure, HDR, wet roads, headlights, and mixed light sources. The better strategy is sparse calibrated reference collection: use lux readings at selected sites to calibrate, validate, and rank the useful-illumination proxy.
+
+A handheld lux meter is strongly recommended. Phone ambient-light sensor readings can be logged as auxiliary data, but they should not be treated as the only ground truth for engineering claims. At each calibrated site, collect 5--8 point readings:
+
+\begingroup
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{center}
+\captionof{table}{Recommended lux-reference point layout at each calibrated site.}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.15\textwidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.28\textwidth}}
+\toprule
+Point & Location & Purpose \\
+\midrule
+P1 & Directly under or closest safely accessible point below the target lamp & Anchor high-light region and estimate local lamp contribution. \\
+P2 & Midpoint between the target lamp and the next lamp & Capture inter-pole minimum and uniformity weakness. \\
+P3 & Road center, lane edge, or safe road-side proxy point & Link public-road visibility to measured illumination. \\
+P4 & Sidewalk, footpath, or pedestrian edge & Capture pedestrian-space adequacy. \\
+P5 & Darkest visible public-space patch near the target lamp & Supervise dark-patch detection and failure ranking. \\
+P6 & Near a confounder such as shop light, sign, headlight spill, reflection, or wet-road glare & Teach the model not to attribute all brightness to the streetlight. \\
+P7/P8 & Opposite side, occluded side, or tree-shadowed side when available & Capture asymmetry and occlusion. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\endgroup
+
+For every lux point, log the lux value, timestamp, route ID, pass ID, GPS or approximate map point, point type, nearby lamp track ID if known, phone frame timestamp if known, and short condition notes. Notes should explicitly mention wet surface, vehicle headlights, shop light, tree occlusion, broken lamp, flicker, overexposure, and unsafe measurement positions.
+
+\subsection{Annotation protocol}
+
+The annotation plan should be keyframe-based. Do not label every frame. First run the object-detection block and a segmentation model, then sample keyframes from each track and route. Manual effort should be spent on correcting important labels, not drawing everything from scratch.
+
+For each selected keyframe, annotate:
+\begin{itemize}
+  \item public-space masks: road, sidewalk/footpath, crossing, median, obstacle, vegetation, building/frontage;
+  \item lamp state: ON, OFF, uncertain, saturated, occluded, blurred, partially visible;
+  \item confounders: vehicle headlight, shopfront light, sign/lightbox, reflection, wet-road glare, construction light, other lamp, tree occlusion;
+  \item affected region: the road/sidewalk region that appears plausibly affected by the target lamp;
+  \item task visibility: pedestrian visible, road edge visible, obstacle visible, crossing visible, dark patch present, glare present;
+  \item attribution confidence: high, medium, low, or impossible because of confounding.
+\end{itemize}
+
+The first annotation target should be 5,000--8,000 keyframes for the pilot. A smaller MVP can start with 1,000--2,000 keyframes. Affected-region labels are more expensive, so the MVP can start with 300--500 and the pilot should target 1,000--2,000. The labels should be route-split before model evaluation, so that the model is tested on unseen physical streets rather than adjacent frames from the same route.
+
+\subsection{Recommended workflow for a one-to-three-person team}
+
+The workflow should be sequential and repeatable:
+
+\begin{enumerate}
+  \item Select 8--15 compact routes and assign route IDs.
+  \item Collect a short daytime reference pass for map alignment and route documentation.
+  \item Collect night video and sensor logs for each route, keeping clips to 1--3 minutes.
+  \item Run the object-detection block to generate lamp detections and track IDs.
+  \item Review tracks and correct only broken tracks, duplicate IDs, missed lamps, and obvious false positives.
+  \item Sample keyframes from each route and track, with extra samples around occlusions, high glare, dark patches, and confounders.
+  \item Generate automatic road/sidewalk masks using a pretrained segmentation model.
+  \item Manually correct masks and add confounder, visibility, lamp-state, and affected-region labels.
+  \item Visit selected calibrated sites with a lux meter and collect 5--8 lux points per site.
+  \item Link lux points to route/pass/frame IDs and lamp tracks.
+  \item Train the measurement block with pretraining data plus the local supervised dataset.
+  \item Evaluate on route-held-out splits, phone-held-out splits if possible, and night-held-out repeats.
+\end{enumerate}
+
+\subsection{What the first model should and should not claim}
+
+The first useful RBCCPS measurement block should not claim to be a certified lux meter. It should claim uncertainty-aware useful-illumination assessment and per-lamp attribution under a declared calibration tier. The model should output ranked adequacy, dark-patch flags, relative useful-illumination features, affected-region estimates, lamp contribution confidence, and abstention reasons.
+
+The first training target should therefore be:
+\begin{itemize}
+  \item detect and track lamps from original-frame video;
+  \item segment public road and pedestrian space;
+  \item estimate relative useful illumination over public-space regions;
+  \item attribute lit regions to nearby lamps where evidence supports attribution;
+  \item calibrate and validate proxy scores using sparse lux points;
+  \item abstain or downgrade claim tier when exposure, glare, headlights, shops, wet roads, occlusion, or missing metadata make the measurement unsafe.
+\end{itemize}
+
+This is the realistic path for a small team. The custom dataset does not need to be enormous at the start. It needs to be carefully indexed, repeated across conditions, linked to sparse calibrated reference points, and annotated around the exact outputs the measurement block must produce.
+
 \end{document}
