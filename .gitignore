@@ -5,6 +5,7 @@ datasets/extracted_frames/
 datasets/imported/
 datasets/derived/
 datasets/yolov26_weights/
+datasets/processed/
 
 # Local environments and caches
 .venvs/
