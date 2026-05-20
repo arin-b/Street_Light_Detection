@@ -5,6 +5,7 @@ datasets/extracted_frames/
 datasets/imported/
 datasets/derived/
 datasets/yolov26_weights/
+models/
 datasets/processed/
 
 # Local environments and caches

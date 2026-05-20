@@ -1,0 +1,89 @@
+{
+  "config_id": "stronger_research_v1",
+  "compute_target": "desktop_gpu_first",
+  "capture_assumption": "android_video_with_synced_metadata_gps_imu",
+  "first_target": "lamp_attributed_useful_illumination",
+  "training_strategy": "stagewise_then_selective_joint_finetune",
+  "dataset_target": {
+    "stage": "pilot",
+    "unique_lamps": [1000, 2500],
+    "lamp_tracks": [6000, 12000],
+    "calibrated_sites": [80, 150],
+    "lux_points": [500, 1000],
+    "labelled_keyframes": [5000, 8000],
+    "affected_region_labels": [1000, 2000]
+  },
+  "modules": {
+    "external_detector": {
+      "type": "black_box_detector_tracker",
+      "pretrained_asset": "streetlight_detector_v3",
+      "output": "D_t detector/tracker tracks"
+    },
+    "normalization": {
+      "type": "metadata_conditioned_radiometric_proxy",
+      "physical_output_allowed": false
+    },
+    "status": {
+      "type": "temporal_latent_emission_state",
+      "pretrained_asset": "feature_resnet18_imagenet",
+      "classes": ["on", "dim", "off", "flicker", "occluded", "saturated", "unknown"]
+    },
+    "segmentation": {
+      "type": "pretrained_then_finetuned_public_space_segmenter",
+      "pretrained_asset": "segmentation_deeplabv3_mobilenet_v3",
+      "auxiliary_enhancement_asset": "lowlight_zero_dce_epoch99",
+      "measurement_source": "original_or_normalized_capture_only",
+      "enhancement_use": "auxiliary_only"
+    },
+    "footprint": {
+      "type": "lamp_conditioned_public_space_field",
+      "pretrained_asset": "feature_resnet18_imagenet",
+      "supervision": "keyframe_affected_region_masks"
+    },
+    "source_decomposition": {
+      "type": "source_slots",
+      "pretrained_asset": "feature_resnet18_imagenet",
+      "sources": ["target_lamp", "other_lamps", "headlights", "shopfronts", "signals", "reflections", "unknown"]
+    },
+    "task_supervised_decomposition": {
+      "type": "reflectance_illumination_source",
+      "pretrained_asset": "retinex_decom_9200",
+      "measurement_interpretation": "learned_representation_not_physical_truth"
+    },
+    "features": {
+      "type": "distributional_useful_illumination",
+      "pretrained_asset": "feature_resnet18_imagenet",
+      "outputs": ["coverage", "adequacy", "uniformity", "dark_holes", "glare", "occlusion", "temporal_stability"]
+    },
+    "attribution": {
+      "type": "counterfactual_target_lamp_suppression"
+    },
+    "fusion": {
+      "type": "monotonic_scene_graph",
+      "constraints": {
+        "coverage": "nondecreasing",
+        "uniformity": "nondecreasing",
+        "attribution": "nondecreasing",
+        "glare": "nonincreasing",
+        "confounder": "nonincreasing",
+        "uncertainty": "nonincreasing_confidence"
+      }
+    },
+    "calibration": {
+      "type": "group_conditioned_conformal_abstention",
+      "groups": ["device", "route", "capture_mode", "wetness", "hdr_night_mode", "road_class", "confounder_density"]
+    },
+    "photometry": {
+      "type": "optional_sparse_reference_field",
+      "minimum_calibration_level": 3,
+      "requires_field_lux_calibration": true
+    }
+  },
+  "report_outputs": ["json", "csv", "geojson", "overlay_manifest", "feature_snapshots"],
+  "hard_gates": [
+    "reject_inconsistent_bbox_coordinates",
+    "never_infer_off_from_missing_detection",
+    "never_use_enhanced_image_as_primary_measurement_brightness",
+    "never_emit_physical_estimates_below_calibration_policy_threshold"
+  ]
+}

@@ -1,0 +1,97 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Executive summary}{1}{section.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {2}Input/output contract}{1}{section.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Design principles}{1}{subsection.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Calibration and claim tiers}{2}{subsection.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Input schema}{3}{subsection.2.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.4}Output schema}{4}{subsection.2.4}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Reporting, quality flags, and audit trail. The reporting layer packages status, affected fields, optional physical estimates, calibration level, quality flags, and provenance into per-lamp reports and structured JSON/CSV outputs.}}{6}{figure.1}\protected@file@percent }
+\newlabel{fig:module-reporting}{{1}{6}{Reporting, quality flags, and audit trail. The reporting layer packages status, affected fields, optional physical estimates, calibration level, quality flags, and provenance into per-lamp reports and structured JSON/CSV outputs}{figure.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}System architecture: modules, data flow, state, and dependencies}{6}{section.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Data flow}{6}{subsection.3.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces End-to-end measurement-block architecture. The diagram keeps the upstream detector external, routes original-frame video and metadata through measurement modules, and separates proxy useful-illumination reports from optional calibrated physical estimates.}}{7}{figure.2}\protected@file@percent }
+\newlabel{fig:measurement-block-overview}{{2}{7}{End-to-end measurement-block architecture. The diagram keeps the upstream detector external, routes original-frame video and metadata through measurement modules, and separates proxy useful-illumination reports from optional calibrated physical estimates}{figure.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Module inventory}{8}{subsection.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}State hierarchy}{8}{subsection.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Dependencies and scheduling}{8}{subsection.3.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4}Algorithmic design}{9}{section.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Capture normalization}{9}{subsection.4.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Metadata-conditioned radiometric normalization. The module produces an exposure-aware luma proxy and reliability products while explicitly marking saturation, bloom, exposure jumps, and insufficient physical validity.}}{10}{figure.3}\protected@file@percent }
+\newlabel{fig:module-capture-normalization}{{3}{10}{Metadata-conditioned radiometric normalization. The module produces an exposure-aware luma proxy and reliability products while explicitly marking saturation, bloom, exposure jumps, and insufficient physical validity}{figure.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Lamp crop and latent emission-state inference}{10}{subsection.4.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Latent emission-state inference. Temporal lamp crops, exposure tokens, saturation tokens, and occlusion tokens feed state heads for emission, occlusion, capture corruption, flicker, confidence, and status.}}{11}{figure.4}\protected@file@percent }
+\newlabel{fig:module-lamp-status}{{4}{11}{Latent emission-state inference. Temporal lamp crops, exposure tokens, saturation tokens, and occlusion tokens feed state heads for emission, occlusion, capture corruption, flicker, confidence, and status}{figure.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Illumination-disentangled public-space segmentation}{11}{subsection.4.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Illumination-disentangled semantic segmentation. Raw and optional enhanced views support public-space masks, occluder masks, confounder candidates, and segmentation uncertainty without turning enhancement into measurement evidence.}}{12}{figure.5}\protected@file@percent }
+\newlabel{fig:module-segmentation}{{5}{12}{Illumination-disentangled semantic segmentation. Raw and optional enhanced views support public-space masks, occluder masks, confounder candidates, and segmentation uncertainty without turning enhancement into measurement evidence}{figure.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Lamp-conditioned affected-region field}{12}{subsection.4.4}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Lamp-conditioned affected-region field. The module predicts soft served-region fields for road, footpath, and crossing areas while carrying a geometry-quality score.}}{13}{figure.6}\protected@file@percent }
+\newlabel{fig:module-affected-region}{{6}{13}{Lamp-conditioned affected-region field. The module predicts soft served-region fields for road, footpath, and crossing areas while carrying a geometry-quality score}{figure.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5}Neural source and confounder decomposition}{13}{subsection.4.5}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Neural light-source decomposition. Slot attention or mixture-of-experts decomposition assigns normalized luma evidence to target lamps, other lamps, headlights, shopfronts, signals, reflections, and unknown sources.}}{14}{figure.7}\protected@file@percent }
+\newlabel{fig:module-source-decomposition}{{7}{14}{Neural light-source decomposition. Slot attention or mixture-of-experts decomposition assigns normalized luma evidence to target lamps, other lamps, headlights, shopfronts, signals, reflections, and unknown sources}{figure.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6}Task-supervised reflectance-illumination-source decomposition}{14}{subsection.4.6}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces Reflectance--illumination--source decomposition. The module factors scene appearance into structure, illumination field, and source field while using reconstruction, segmentation, measurement, exposure, and source-separation supervision.}}{15}{figure.8}\protected@file@percent }
+\newlabel{fig:module-ris-decomposition}{{8}{15}{Reflectance--illumination--source decomposition. The module factors scene appearance into structure, illumination field, and source field while using reconstruction, segmentation, measurement, exposure, and source-separation supervision}{figure.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.7}Distributional useful-illumination features}{15}{subsection.4.7}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces Distributional useful-illumination features. The module estimates coverage, adequacy, uniformity, dark-hole behavior, and temporal stability from affected-region features rather than relying on a single mean brightness.}}{16}{figure.9}\protected@file@percent }
+\newlabel{fig:module-distributional-features}{{9}{16}{Distributional useful-illumination features. The module estimates coverage, adequacy, uniformity, dark-hole behavior, and temporal stability from affected-region features rather than relying on a single mean brightness}{figure.9}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.8}Counterfactual lamp attribution}{16}{subsection.4.8}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {10}{\ignorespaces Counterfactual lamp attribution. The module compares useful illumination with all source fields against useful illumination after suppressing the target-lamp source field.}}{17}{figure.10}\protected@file@percent }
+\newlabel{fig:module-counterfactual-attribution}{{10}{17}{Counterfactual lamp attribution. The module compares useful illumination with all source fields against useful illumination after suppressing the target-lamp source field}{figure.10}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.9}Monotonic scene-graph fusion}{17}{subsection.4.9}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {11}{\ignorespaces Monotonic scene-graph useful-illumination fusion. Typed graph nodes and edges combine lamp, public-space, confounder, camera, geometry, and route evidence under explicit monotonic constraints.}}{18}{figure.11}\protected@file@percent }
+\newlabel{fig:module-scene-graph-fusion}{{11}{18}{Monotonic scene-graph useful-illumination fusion. Typed graph nodes and edges combine lamp, public-space, confounder, camera, geometry, and route evidence under explicit monotonic constraints}{figure.11}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.10}Group-conditioned conformal calibration and abstention}{19}{subsection.4.10}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {12}{\ignorespaces Group-conditioned uncertainty and abstention. The module calibrates confidence by device, route, capture mode, weather, and confounder density, then decides whether to report or abstain.}}{19}{figure.12}\protected@file@percent }
+\newlabel{fig:module-uncertainty-abstention}{{12}{19}{Group-conditioned uncertainty and abstention. The module calibrates confidence by device, route, capture mode, weather, and confounder density, then decides whether to report or abstain}{figure.12}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.11}Optional sparse-reference neural photometric field}{19}{subsection.4.11}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {13}{\ignorespaces Calibration and physical-scale bridge. Proxy scores are always available, but proxy-to-physical mapping and lux-like estimates are emitted only when signal quality and calibration sufficiency pass the required threshold.}}{20}{figure.13}\protected@file@percent }
+\newlabel{fig:module-calibration-bridge}{{13}{20}{Calibration and physical-scale bridge. Proxy scores are always available, but proxy-to-physical mapping and lux-like estimates are emitted only when signal quality and calibration sufficiency pass the required threshold}{figure.13}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.12}Route-level graph aggregation}{20}{subsection.4.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}Model choices: stronger research model and long-term version}{20}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Stronger research model}{21}{subsection.5.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Long-term version}{21}{subsection.5.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6}Dataset and annotation protocol}{21}{section.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}What must be collected}{21}{subsection.6.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}Lux-meter reference protocol}{22}{subsection.6.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Visibility and task labels}{22}{subsection.6.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.4}Semantic and confounder labels}{23}{subsection.6.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.5}Attribution confidence labels}{23}{subsection.6.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7}Evaluation protocol}{23}{section.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}Physical metrics}{23}{subsection.7.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Task-usefulness metrics}{24}{subsection.7.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}Attribution metrics}{24}{subsection.7.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}Temporal stability}{24}{subsection.7.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.5}Calibration and uncertainty}{24}{subsection.7.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.6}On-device latency, memory, and energy}{24}{subsection.7.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {8}Baselines that the system must beat}{24}{section.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {9}Failure modes and mitigations}{25}{section.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {10}Deployment plan}{25}{section.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.1}Desktop research implementation}{26}{subsection.10.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.2}Android/TFLite or edge deployment}{27}{subsection.10.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.3}Offline batch mode}{27}{subsection.10.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.4}Integration with object-detection block outputs}{27}{subsection.10.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {11}Open questions and assumptions}{27}{section.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{Final recommendation}{28}{Item.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {12}Potential datasets for use}{28}{section.12}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Potential open, partial, and requestable datasets for the RBCCPS measurement block.}}{29}{table.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Potential datasets for use, continued: calibrated and GIS-style references.}}{29}{table.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Potential datasets for use, continued: road-scene and nighttime segmentation pretraining.}}{29}{table.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Potential datasets for use, continued: Kaggle sources and small auxiliary datasets.}}{30}{table.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {13}Small-team data collection plan}{30}{section.13}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {13.1}Recommended collection scale}{31}{subsection.13.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Recommended dataset scale for a small RBCCPS measurement-block team.}}{31}{table.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {13.2}Four custom datasets to collect}{31}{subsection.13.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces Custom datasets required beyond open-source pretraining data.}}{31}{table.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {13.3}Phone capture protocol}{32}{subsection.13.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {13.4}Route selection}{32}{subsection.13.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {13.5}Sparse lux collection protocol}{33}{subsection.13.5}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces Recommended lux-reference point layout at each calibrated site.}}{33}{table.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {13.6}Annotation protocol}{34}{subsection.13.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {13.7}Recommended workflow for a one-to-three-person team}{34}{subsection.13.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {13.8}What the first model should and should not claim}{35}{subsection.13.8}\protected@file@percent }
+\gdef \@abspage@last{38}
