@@ -17,6 +17,7 @@ from rbccps_od.pipeline.advanced_runner import (
     _track_to_dict,
 )
 from rbccps_od.pipeline.multicue_stage import MultiCueFilterStage
+from rbccps_od.evaluation.metrics import MetricsManager
 
 
 GMC_METHODS = {"sparseOptFlow", "orb", "sift", "ecc", "none"}
@@ -27,7 +28,10 @@ def parse_args() -> argparse.Namespace:
         description="Run YOLO26m video inference with BoT-SORT tracking and multi-cue filtering."
     )
     parser.add_argument("--video", required=True, help="Input video path.")
-    parser.add_argument("--model", required=True, help="Fine-tuned YOLO26m weights, e.g. best.pt.")
+    parser.add_argument(
+        "--model",
+        help="Optional YOLO model checkpoint path. If omitted, uses the pretrained YOLO26m base asset as a placeholder.",
+    )
     parser.add_argument("--output-dir", help="Output directory. Defaults to runs/video_pipeline/<video_stem>.")
     parser.add_argument("--name", help="Run name used when --output-dir is omitted.")
     parser.add_argument("--conf", type=float, default=0.25, help="Detector confidence threshold.")
@@ -249,7 +253,7 @@ def _open_video_writer(path: Path, fps: float, frame: Any) -> Any:
     height, width = frame.shape[:2]
     writer_fps = fps if fps > 0 else 30.0
     path.parent.mkdir(parents=True, exist_ok=True)
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    fourcc = cv2.VideoWriter.fourcc(*"mp4v")
     return cv2.VideoWriter(str(path), fourcc, writer_fps, (width, height))
 
 
@@ -288,13 +292,14 @@ def main() -> None:
 
     output_dir = resolve_repo_path(args.output_dir) if args.output_dir else default_output_dir(video_path, args.name)
     ensure_dir(output_dir)
-    model_path = resolve_model_path(args.model, must_exist=not args.dry_run)
+    model_path = resolve_model_path(args.model, must_exist=not args.dry_run) if args.model else None
     tracker_path = resolve_repo_path(args.tracker_config) if args.tracker_config else write_botsort_config(args, output_dir)
     save_video = not args.no_save_video
 
+    detector = YOLO26Detector(checkpoint_path=model_path) if model_path else YOLO26Detector()
     payload = {
         "video": str(video_path),
-        "model": str(model_path),
+        "model": str(model_path) if model_path else detector.asset_name,
         "output_dir": str(output_dir),
         "conf": args.conf,
         "iou": args.iou,
@@ -314,7 +319,6 @@ def main() -> None:
         return
 
     metadata = video_metadata(video_path)
-    detector = YOLO26Detector(checkpoint_path=model_path)
     model = detector.adapter.load(detector.resolved_checkpoint())
     multicue_stage = MultiCueFilterStage(
         CueWeights(),
@@ -326,6 +330,7 @@ def main() -> None:
     frame_rows: list[dict[str, Any]] = []
     detection_rows: list[dict[str, Any]] = []
     track_stats: dict[str, dict[str, Any]] = {}
+    metrics = MetricsManager()
     writer = None
     annotated_video_path = output_dir / "annotated.mp4"
 
@@ -351,6 +356,25 @@ def main() -> None:
             tracks = _result_to_tracks(result, histories)
             frame_height = getattr(result, "orig_shape", [None, None])[0] if result is not None else None
             filtered = multicue_stage.run(tracks, frame_height=frame_height)
+            accepted_tracks = [
+                entry
+                for entry in filtered
+                if entry["accepted"]
+            ]
+            gt_count = 0
+
+            metrics.update_frame(
+                gt_count=gt_count,
+                accepted_tracks=accepted_tracks,
+                raw_tracks=tracks,
+            )
+
+            for entry in filtered:
+
+                metrics.update_track_metrics(
+                    track_id=entry["track"].track_id,
+                    accepted=entry["accepted"],
+                )
 
             frame_detection_rows = _box_rows(result, frame_index, time_sec, filtered)
             detection_rows.extend(frame_detection_rows)
@@ -391,6 +415,12 @@ def main() -> None:
         writer.release()
 
     track_rows = _track_summary_rows(track_stats)
+    metrics_summary = metrics.summary()
+
+    write_json(
+        output_dir / "metrics.json",
+        metrics_summary,
+    )
     _write_outputs(output_dir, payload, frame_rows, detection_rows, track_rows, metadata)
     print(
         json.dumps(
@@ -402,6 +432,7 @@ def main() -> None:
                 "tracks_csv": str((output_dir / "tracks.csv").resolve()),
                 "frames_jsonl": str(jsonl_path.resolve()),
                 "annotated_video": str(annotated_video_path.resolve()) if save_video else None,
+                "metrics_json": str((output_dir / "metrics.json").resolve()),
             },
             indent=2,
         )

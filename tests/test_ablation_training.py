@@ -52,5 +52,6 @@ def test_config_for_adds_wandb_ablation_metadata(tmp_path: Path):
     assert config.wandb.enabled is True
     assert config.wandb.project == "streetlight-tests"
     assert "zerodce_enhanced" in config.wandb.tags
+    assert config.wandb.config is not None
     assert config.wandb.config["ablation_experiment"] == "zerodce_enhanced"
     assert config.wandb.config["model_parameters"] == 20_000_000
