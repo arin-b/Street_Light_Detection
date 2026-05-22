@@ -4,6 +4,14 @@ This directory now contains only retained helper scripts that have not yet been 
 
 ## Current Status
 
+The old embedded streetlight review app has been replaced by the modular measurement annotator. New review work should use:
+
+```bash
+python -m rbccps_annotator <command>
+```
+
+The compatibility command `python -m rbccps_od review-app` now forwards to the modular annotator command surface.
+
 The default supported workflow is the v3 local-night path:
 
 1. review click-review items with `python -m rbccps_od review-app`

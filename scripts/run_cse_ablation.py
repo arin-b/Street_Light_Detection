@@ -5,7 +5,11 @@ EXPERIMENTS = [
 
     {
         "name": "original",
+<<<<<<< HEAD
         "data": "configs/original_images.yaml"
+=======
+        "data": "configs/original.yaml"
+>>>>>>> origin
     },
 
     {
