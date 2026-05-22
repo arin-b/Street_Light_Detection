@@ -5,6 +5,7 @@ import sys
 
 COMMAND_TO_MODULE = {
     "review-app": "rbccps_od.review.app",
+    "annotator": "rbccps_annotator.cli",
     "sync-v3-reviews": "rbccps_od.datasets.review_sync",
     "build-v3-corpus": "rbccps_od.datasets.corpus_v3",
     "train": "rbccps_od.training.train",

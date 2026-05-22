@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RBCCPS Measurement Annotator</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div>
+        <h1>Streetlight Labeler</h1>
+        <div class="workspace-status" id="workspaceStatus">Loading workspace</div>
+      </div>
+
+      <div class="stepper" id="stepper"></div>
+
+      <div class="sidebar-actions">
+        <button id="saveBtn" class="primary">Save</button>
+        <button id="acceptedBtn">Accept Item</button>
+        <button id="needsReviewBtn">Needs Review</button>
+        <button id="unusableBtn">Unusable</button>
+      </div>
+
+      <div class="nav-grid">
+        <button id="prevBtn">Previous</button>
+        <button id="nextBtn">Next</button>
+      </div>
+
+      <div class="message" id="message"></div>
+      <div class="item-list" id="itemList"></div>
+    </aside>
+
+    <main class="main">
+      <section class="canvas-panel">
+        <div class="topbar">
+          <div>
+            <h2 id="itemTitle">No item</h2>
+            <div class="muted" id="itemSubtitle"></div>
+          </div>
+          <div class="toolstrip">
+            <button id="boxToolBtn">Box</button>
+            <button id="smartToolBtn">Magic Surface</button>
+            <button id="polygonToolBtn">Draw Shape</button>
+            <button id="pointToolBtn">Point</button>
+            <button id="finishPolygonBtn">Finish</button>
+            <button id="deleteSelectedBtn">Delete</button>
+          </div>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="canvas"></canvas>
+        </div>
+        <div class="status-strip" id="statusStrip">Ready</div>
+      </section>
+
+      <aside class="task-panel">
+        <section class="task-card" id="taskLampBoxes">
+          <h3>Mark Lamps</h3>
+          <p>Put a box around each streetlight lamp head. Mark bad boxes as not a lamp.</p>
+          <div id="boxList" class="compact-list"></div>
+          <label>What is this box?
+            <select id="boxStatus">
+              <option value="candidate">Not checked yet</option>
+              <option value="accepted">Good lamp box</option>
+              <option value="fixed">I fixed this box</option>
+              <option value="false_positive">Not a lamp</option>
+              <option value="ambiguous">Unsure</option>
+            </select>
+          </label>
+          <label>Track ID <input id="boxTrackId"></label>
+          <label>Notes <input id="boxNotes"></label>
+          <button id="updateBoxBtn">Save Box Choice</button>
+        </section>
+
+        <section class="task-card hidden" id="taskSurfaces">
+          <h3>Mark Other Lights</h3>
+          <p>Use Magic Surface: drag around a wall, shop, window, sign, headlight, or reflection. Then keep the shape if it looks right.</p>
+          <label>What did you mark? <select id="surfaceType"></select></label>
+          <details>
+            <summary>More options</summary>
+            <div class="toggle-grid">
+              <label><input id="polyBright" type="checkbox"> It is bright</label>
+              <label><input id="polyReflective" type="checkbox"> It reflects light</label>
+              <label><input id="polyPublic" type="checkbox"> It is road/footpath</label>
+              <label><input id="polyConfounds" type="checkbox" checked> It can confuse lamp measurement</label>
+              <label><input id="polyOverlaps" type="checkbox"> It overlaps the lit area</label>
+              <label><input id="polyAugAllowed" type="checkbox"> Use for training mask</label>
+            </div>
+            <label>Lamp safety gap px <input id="polyMargin" type="number" value="12"></label>
+          </details>
+          <div class="proposal-actions">
+            <button id="acceptProposalBtn" class="primary">Keep Shape</button>
+            <button id="discardProposalBtn">Try Again</button>
+          </div>
+          <div class="shape-actions">
+            <button id="deleteShapeBtn" class="danger">Delete This Shape</button>
+            <button id="undoShapeBtn">Undo Last Shape</button>
+            <button id="undoPointBtn">Undo Point</button>
+            <button id="cancelShapeBtn">Cancel Drawing</button>
+          </div>
+          <div id="polygonList" class="compact-list"></div>
+          <button id="updatePolygonBtn">Save Shape Choice</button>
+        </section>
+
+        <section class="task-card hidden" id="taskPublicSpace">
+          <h3>Mark Road/Footpath</h3>
+          <p>Draw or select the road, footpath, crossing, or other public area.</p>
+          <label>Area type <select id="regionType"></select></label>
+          <button id="addPublicRegionBtn">Save As Road/Footpath Area</button>
+        </section>
+
+        <section class="task-card hidden" id="taskAffected">
+          <h3>Mark Lit Area</h3>
+          <p>Select a lamp track and mark the road/footpath area that this lamp seems to light.</p>
+          <label>Target Track <input id="measurementTrackId"></label>
+          <button id="addAffectedRegionBtn">Save As Lit Area</button>
+        </section>
+
+        <section class="task-card hidden" id="taskVisibility">
+          <h3>Rate Visibility</h3>
+          <label>Is the lamp on? <select id="lampStatus"></select></label>
+          <button id="addLampStatusBtn">Save Lamp Status</button>
+          <label>How usable is the light? <select id="visibilityClass"></select></label>
+          <button id="addVisibilityBtn">Save Visibility</button>
+          <label>Is this lamp really causing the light? <select id="attributionClass"></select></label>
+          <label>Why? <input id="attributionEvidence" placeholder="target lamp, shop, headlights, reflection"></label>
+          <button id="addAttributionBtn">Save Attribution</button>
+        </section>
+
+        <section class="task-card hidden" id="taskLuxQa">
+          <h3>Field Lux / Notes</h3>
+          <p>Only enter lux if you measured it in the field. Do not guess lux from the image.</p>
+          <label>Measured point type <select id="luxType"></select></label>
+          <label>Measured lux value, optional <input id="luxValue" type="number" step="0.01" placeholder="leave blank if not measured"></label>
+          <button id="addLuxBtn">Save Measured Lux Point</button>
+          <div class="qa-chips" id="qaChips"></div>
+          <label>Note or QA flag <input id="qaFlag" placeholder="no_lux_reference"></label>
+          <button id="addQaBtn">Add Note</button>
+        </section>
+
+        <section class="task-card">
+          <h3>Review Summary</h3>
+          <pre id="reviewSummary"></pre>
+        </section>
+      </aside>
+    </main>
+  </div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
