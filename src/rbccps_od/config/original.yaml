@@ -1,0 +1,7 @@
+path: datasets/processed/original-yolo26m
+
+train: images/train
+val: images/val
+
+names:
+  0: streetlight
