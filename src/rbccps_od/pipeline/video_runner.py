@@ -56,6 +56,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--with-reid", action="store_true", help="Enable BoT-SORT ReID if the environment supports it.")
     parser.add_argument("--no-save-video", action="store_true", help="Skip annotated video export.")
     parser.add_argument("--dry-run", action="store_true", help="Print the resolved configuration without inference.")
+    parser.add_argument("--enable-metrics", action="store_true", help="Enable metrics evaluation using ground-truth labels.")   
+    parser.add_argument("--labels-dir", help="Directory containing YOLO label txt files for evaluation.")
     return parser.parse_args()
 
 
@@ -125,6 +127,20 @@ def _time_sec(frame_index: int, fps: float, vid_stride: int) -> float:
         return 0.0
     return ((frame_index - 1) * max(1, vid_stride)) / fps
 
+def load_gt_count(
+    labels_dir: Path,
+    frame_index: int,
+    vid_stride: int,
+) -> int:
+
+    actual_frame_index = ((frame_index - 1) * max(1, vid_stride)) + 1
+    label_path = labels_dir / f"frame_{actual_frame_index:06d}.txt"
+
+    if not label_path.exists():
+        return 0
+
+    with label_path.open("r", encoding="utf-8") as f:
+        return len(f.readlines())
 
 def _cue_values(entry: dict[str, Any]) -> dict[str, float]:
     return {cue.name: float(cue.value) for cue in entry["cues"]}
@@ -295,6 +311,13 @@ def main() -> None:
     model_path = resolve_model_path(args.model, must_exist=not args.dry_run) if args.model else None
     tracker_path = resolve_repo_path(args.tracker_config) if args.tracker_config else write_botsort_config(args, output_dir)
     save_video = not args.no_save_video
+    labels_dir = (
+        resolve_repo_path(args.labels_dir)
+        if args.labels_dir
+        else None
+    )
+    if args.enable_metrics and labels_dir is None:
+        raise ValueError("--labels-dir must be provided when --enable-metrics is used.")
 
     detector = YOLO26Detector(checkpoint_path=model_path) if model_path else YOLO26Detector()
     payload = {
@@ -330,7 +353,7 @@ def main() -> None:
     frame_rows: list[dict[str, Any]] = []
     detection_rows: list[dict[str, Any]] = []
     track_stats: dict[str, dict[str, Any]] = {}
-    metrics = MetricsManager()
+    metrics = MetricsManager() if args.enable_metrics else None
     writer = None
     annotated_video_path = output_dir / "annotated.mp4"
 
@@ -361,20 +384,24 @@ def main() -> None:
                 for entry in filtered
                 if entry["accepted"]
             ]
-            gt_count = 0
-
-            metrics.update_frame(
-                gt_count=gt_count,
-                accepted_tracks=accepted_tracks,
-                raw_tracks=tracks,
-            )
-
-            for entry in filtered:
-
-                metrics.update_track_metrics(
-                    track_id=entry["track"].track_id,
-                    accepted=entry["accepted"],
+            if args.enable_metrics and metrics is not None and labels_dir is not None:
+                gt_count = load_gt_count(
+                    labels_dir,
+                    frame_index,
+                    args.vid_stride
                 )
+
+                metrics.update_frame(
+                    gt_count=gt_count,
+                    accepted_tracks=accepted_tracks,
+                    raw_tracks=tracks,
+                )
+
+                for entry in filtered:
+                    metrics.update_track_metrics(
+                        track_id=entry["track"].track_id,
+                        accepted=entry["accepted"],
+                    )
 
             frame_detection_rows = _box_rows(result, frame_index, time_sec, filtered)
             detection_rows.extend(frame_detection_rows)
@@ -415,12 +442,12 @@ def main() -> None:
         writer.release()
 
     track_rows = _track_summary_rows(track_stats)
-    metrics_summary = metrics.summary()
-
-    write_json(
-        output_dir / "metrics.json",
-        metrics_summary,
-    )
+    if args.enable_metrics and metrics is not None:
+        metrics_summary = metrics.summary()
+        write_json(
+            output_dir / "metrics.json",
+            metrics_summary,
+        )
     _write_outputs(output_dir, payload, frame_rows, detection_rows, track_rows, metadata)
     print(
         json.dumps(
@@ -432,7 +459,7 @@ def main() -> None:
                 "tracks_csv": str((output_dir / "tracks.csv").resolve()),
                 "frames_jsonl": str(jsonl_path.resolve()),
                 "annotated_video": str(annotated_video_path.resolve()) if save_video else None,
-                "metrics_json": str((output_dir / "metrics.json").resolve()),
+                "metrics_json": str((output_dir / "metrics.json").resolve()) if args.enable_metrics else None,
             },
             indent=2,
         )
