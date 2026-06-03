@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 
 from ultralytics.nn.modules.conv import Conv
@@ -13,7 +12,7 @@ class CSEBottleneck(nn.Module):
 
         super().__init__()
 
-        hidden = channels // 2
+        hidden = max(1, channels // 2)
 
         self.cv1 = Conv(channels, hidden, 1, 1)
         self.cv2 = Conv(hidden, hidden, 3, 1)

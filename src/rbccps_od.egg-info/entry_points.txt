@@ -1,0 +1,4 @@
+[console_scripts]
+rbccps-annotator = rbccps_annotator.cli:main
+rbccps-dashboard = rbccps_dashboard.cli:main
+rbccps-measurement = rbccps_measurement.cli.main:main

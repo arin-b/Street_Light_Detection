@@ -25,6 +25,7 @@ COMMAND_TO_MODULE = {
     "materialize-review-batches": "rbccps_od.review.materialize_batches",
     "build-review-subset": "rbccps_od.review.subset",
     "propagate-reviews": "rbccps_od.review.propagation",
+    "dashboard": "rbccps_dashboard.cli",
 }
 
 

@@ -1,0 +1,23 @@
+experiment:
+  name: Exp1
+  description: ''
+  stage: phase_1
+dataset:
+  config: src/rbccps_od/config/original.yaml
+model:
+  variant: YOLO26n
+  pretrained_weights: null
+training:
+  epochs: 5
+  batch_size: 2
+  image_size: 320
+  learning_rate: 0.01
+  weight_decay: 0.0005
+  optimizer: auto
+  scheduler: cosine
+  workers: 8
+  patience: 50
+  seed: 42
+  device: auto
+  mixed_precision: true
+  gradient_accumulation: 1

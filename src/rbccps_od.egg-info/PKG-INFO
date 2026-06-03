@@ -4,11 +4,34 @@ Version: 0.1.0
 Summary: Nighttime streetlight object-detection package with baseline YOLOv26 and modular advanced pipeline hooks.
 Requires-Python: >=3.10
 Description-Content-Type: text/markdown
+Requires-Dist: pillow>=10.0.0
+Requires-Dist: fastapi>=0.111.0
+Requires-Dist: pydantic>=2.7.0
+Requires-Dist: SQLAlchemy>=2.0.30
+Requires-Dist: uvicorn[standard]>=0.30.0
+Requires-Dist: PyYAML>=6.0.0
+Requires-Dist: psutil>=5.9.0
 Provides-Extra: train
 Requires-Dist: ultralytics>=8.2.0; extra == "train"
 Requires-Dist: pillow>=10.0.0; extra == "train"
+Requires-Dist: wandb>=0.17.0; extra == "train"
+Provides-Extra: measurement
+Requires-Dist: numpy>=1.26.0; extra == "measurement"
+Requires-Dist: pillow>=10.0.0; extra == "measurement"
+Requires-Dist: opencv-python>=4.9.0; extra == "measurement"
+Requires-Dist: torch>=2.3.0; extra == "measurement"
+Provides-Extra: annotator
+Requires-Dist: opencv-python>=4.9.0; extra == "annotator"
+Requires-Dist: numpy>=1.26.0; extra == "annotator"
 Provides-Extra: dev
 Requires-Dist: pytest>=8.0.0; extra == "dev"
+Provides-Extra: dashboard
+Requires-Dist: fastapi>=0.111.0; extra == "dashboard"
+Requires-Dist: pydantic>=2.7.0; extra == "dashboard"
+Requires-Dist: SQLAlchemy>=2.0.30; extra == "dashboard"
+Requires-Dist: uvicorn[standard]>=0.30.0; extra == "dashboard"
+Requires-Dist: PyYAML>=6.0.0; extra == "dashboard"
+Requires-Dist: psutil>=5.9.0; extra == "dashboard"
 
 # RBCCPS Streetlight Auditing Project
 

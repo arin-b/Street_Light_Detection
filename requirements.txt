@@ -10,6 +10,7 @@ cycler==0.12.1
 filelock==3.29.0
 fonttools==4.63.0
 fsspec==2026.4.0
+fastapi>=0.111.0
 gitdb==4.0.12
 GitPython==3.1.50
 idna==3.15
@@ -57,6 +58,7 @@ sentry-sdk==2.60.0
 setuptools==81.0.0
 six==1.17.0
 smmap==5.0.3
+SQLAlchemy>=2.0.30
 sympy==1.14.0
 torch==2.12.0
 torchvision==0.27.0
@@ -66,4 +68,5 @@ typing_extensions==4.15.0
 ultralytics==8.4.51
 ultralytics-thop==2.0.19
 urllib3==2.7.0
+uvicorn[standard]>=0.30.0
 wandb==0.27.0

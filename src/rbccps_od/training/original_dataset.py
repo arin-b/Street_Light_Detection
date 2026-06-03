@@ -102,9 +102,10 @@ def write_dataset_yaml(output_root: Path) -> Path:
                 "train: images/train",
                 "val: images/valid",
                 "test: images/test",
-                "nc: 1",
+                "nc: 2",
                 "names:",
-                "  0: streetlight",
+                "  0: lamp",
+                "  1: pole",
                 "",
             ]
         ),

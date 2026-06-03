@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import random
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
@@ -28,6 +29,15 @@ class FineTuneConfig:
     close_mosaic: int
     exist_ok: bool = False
     wandb: "WandbConfig | None" = None
+    seed: int = 42
+    deterministic: bool = True
+    optimizer: str = "AdamW"
+    lr0: float = 1e-3
+    weight_decay: float = 5e-4
+    use_geometry_attention: bool = False
+    use_cse: bool = False
+    use_negative_attention: bool = False
+    negative_mask_root: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -101,6 +111,11 @@ def training_kwargs(config: FineTuneConfig) -> dict[str, Any]:
         "cache": config.cache,
         "close_mosaic": config.close_mosaic,
         "exist_ok": config.exist_ok,
+        "seed": config.seed,
+        "deterministic": config.deterministic,
+        "optimizer": config.optimizer,
+        "lr0": config.lr0,
+        "weight_decay": config.weight_decay,
     }
 
 
@@ -123,6 +138,14 @@ def _safe_wandb_config(trainer: Any, config: FineTuneConfig) -> dict[str, Any]:
         "batch": config.batch,
         "device": config.device,
         "run_name": config.name,
+        "seed": config.seed,
+        "optimizer": config.optimizer,
+        "lr0": config.lr0,
+        "weight_decay": config.weight_decay,
+        "use_geometry_attention": config.use_geometry_attention,
+        "use_cse": config.use_cse,
+        "use_negative_attention": config.use_negative_attention,
+        "negative_mask_root": config.negative_mask_root,
         "ultralytics_args": vars(trainer.args),
     }
     if config.wandb and config.wandb.config:
@@ -234,14 +257,16 @@ def _run_dir_from(result: Any, yolo: Any, config: FineTuneConfig) -> Path:
 
 def run_yolo26m_finetune(config: FineTuneConfig) -> TrainingRunResult:
     os.environ.setdefault("YOLO_CONFIG_DIR", str(ensure_dir(repo_root() / "_ultralytics_config")))
-    try:
-        from ultralytics import YOLO
-    except ImportError as exc:
-        raise SystemExit("ultralytics is not installed. Install the training extras before running this command.") from exc
+    _set_reproducible_seed(config.seed)
 
-    yolo = YOLO(config.model)
+    yolo = _build_yolo_for_config(config)
     attach_wandb_callbacks(yolo, config)
-    result = yolo.train(**training_kwargs(config))
+    trainer = _trainer_for_config(config)
+    train_args = training_kwargs(config)
+    if trainer is not None:
+        result = yolo.train(trainer=trainer, **train_args)
+    else:
+        result = yolo.train(**train_args)
     run_dir = _run_dir_from(result, yolo, config)
     weights_dir = run_dir / "weights"
     return TrainingRunResult(
@@ -250,6 +275,51 @@ def run_yolo26m_finetune(config: FineTuneConfig) -> TrainingRunResult:
         best_weights=weights_dir / "best.pt",
         last_weights=weights_dir / "last.pt",
     )
+
+
+def _set_reproducible_seed(seed: int) -> None:
+    random.seed(seed)
+    try:
+        import numpy as np
+
+        np.random.seed(seed)
+    except ImportError:
+        pass
+    try:
+        import torch
+
+        torch.manual_seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(seed)
+    except ImportError:
+        pass
+
+
+def _build_yolo_for_config(config: FineTuneConfig) -> Any:
+    if config.use_geometry_attention or config.use_cse or config.use_negative_attention:
+        from rbccps_od.models.yolo_ablation import build_yolo26_ablation_model
+
+        return build_yolo26_ablation_model(
+            config.model,
+            use_geometry_attention=config.use_geometry_attention,
+            use_cse=config.use_cse,
+            use_negative_attention=config.use_negative_attention,
+        )
+
+    try:
+        from ultralytics import YOLO
+    except ImportError as exc:
+        raise SystemExit("ultralytics is not installed. Install the training extras before running this command.") from exc
+    return YOLO(config.model)
+
+
+def _trainer_for_config(config: FineTuneConfig) -> Any | None:
+    if not config.use_negative_attention or config.negative_mask_root is None:
+        return None
+
+    from rbccps_od.models.yolo_ablation import negative_mask_trainer
+
+    return negative_mask_trainer(config.negative_mask_root)
 
 
 def save_trained_weights(run: TrainingRunResult, artifact_dir: Path) -> dict[str, str]:
@@ -266,6 +336,13 @@ def save_trained_weights(run: TrainingRunResult, artifact_dir: Path) -> dict[str
         target = artifact_dir / source.name
         shutil.copy2(source, target)
         saved[f"{label}_weights"] = str(target)
+
+    for artifact_name in ("results.csv", "args.yaml", "confusion_matrix.png", "results.png"):
+        source = run.run_dir / artifact_name
+        if source.exists():
+            target = artifact_dir / artifact_name
+            shutil.copy2(source, target)
+            saved[artifact_name.replace(".", "_")] = str(target)
 
     metadata_path = artifact_dir / "metadata.json"
     metadata_path.write_text(json.dumps(saved, indent=2) + "\n", encoding="utf-8")

@@ -1,0 +1,13 @@
+services:
+  dashboard:
+    build:
+      context: ..
+      dockerfile: dashboard/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../configs:/app/configs
+      - ../src/rbccps_od/config:/app/src/rbccps_od/config
+      - ../.dashboard:/app/.dashboard
+    environment:
+      RBCCPS_PROJECT_ROOT: /app

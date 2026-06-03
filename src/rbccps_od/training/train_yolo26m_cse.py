@@ -1,34 +1,16 @@
-from ultralytics import YOLO
-import torch
-
-from rbccps_od.models.yolo_cse import CSEC2f
+from rbccps_od.models.yolo_ablation import (
+    build_yolo26_ablation_model,
+    replace_c2f_with_cse as _replace_c2f_with_cse,
+)
 
 
 def replace_c2f_with_cse(model):
-
-    for name, module in model.model.named_children():
-
-        if module.__class__.__name__ == "C2f":
-
-            new_module = CSEC2f(
-                module.cv1.conv.in_channels,
-                module.cv2.conv.out_channels,
-                n=len(module.m)
-            )
-
-            model.model._modules[name] = new_module
-
-        else:
-            replace_c2f_with_cse(module)
+    return _replace_c2f_with_cse(getattr(model, "model", model))
 
 
 def build_cse_model(weights_path="yolo26m.pt"):
+    return build_yolo26_ablation_model(weights_path, use_cse=True)
 
-    model = YOLO(weights_path)
-
-    replace_c2f_with_cse(model.model)
-
-    return model
 
 def train():
 

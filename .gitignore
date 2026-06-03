@@ -6,14 +6,32 @@ datasets/imported/
 datasets/derived/
 datasets/yolov26_weights/
 models/
+!src/rbccps_od/models/
+!src/rbccps_od/models/yolo_attention.py
 datasets/processed/
 datasets/processed/
+
+runs/
+runs1/
+# Videos
+*.mp4
+*.avi
+*.mov
+
+# Large data files
+*.jsonl
+
+# Models
+*.pt
+*.pth
+*.onnx
 
 # Local environments and caches
 .venvs/
 .miktex-local/
 _ultralytics_config/
 .cache/
+.dashboard/
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -34,3 +52,5 @@ final_paper/*.log
 documentation/literature_review/papers/
 
 streetlight-env/
+dashboard/frontend/node_modules/
+dashboard/frontend/dist/

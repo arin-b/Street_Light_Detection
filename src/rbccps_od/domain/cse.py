@@ -9,14 +9,15 @@ class CSEBlock(nn.Module):
 
     def __init__(self, channels, reduction=16):
         super().__init__()
+        squeezed_channels = max(1, channels // reduction)
 
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.max_pool = nn.AdaptiveMaxPool2d(1)
 
         self.fc = nn.Sequential(
-            nn.Linear(channels * 2, channels // reduction),
+            nn.Linear(channels * 2, squeezed_channels),
             nn.SiLU(),
-            nn.Linear(channels // reduction, channels),
+            nn.Linear(squeezed_channels, channels),
             nn.Sigmoid()
         )
 
