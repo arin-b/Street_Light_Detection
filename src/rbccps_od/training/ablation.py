@@ -256,6 +256,20 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--negative-mask-loss-weight",
+        type=float,
+        default=1.0,
+        help="Lambda for Ldet + lambda * Lmask in negative-attention ablations.",
+    )
+    parser.add_argument(
+        "--allow-mask-unsafe-augmentations",
+        action="store_true",
+        help=(
+            "Keep YOLO geometric augmentations for negative-mask runs. By default they are disabled because "
+            "external mask files cannot receive the same random transforms as the images."
+        ),
+    )
+    parser.add_argument(
         "--allow-dataset-negative-masks",
         action="store_true",
         help="Allow negative cases without --negative-mask-root when a custom dataset already provides masks.",
@@ -434,6 +448,8 @@ def _config_for(
                 "use_geometry_attention": case.use_geometry,
                 "use_cse": case.use_cse,
                 "use_negative_attention": case.use_negative,
+                "negative_mask_loss_weight": getattr(args, "negative_mask_loss_weight", 1.0),
+                "mask_safe_augmentations": not getattr(args, "allow_mask_unsafe_augmentations", False),
             },
         ),
         seed=getattr(args, "seed", 42),
@@ -444,6 +460,8 @@ def _config_for(
         use_cse=case.use_cse,
         use_negative_attention=case.use_negative,
         negative_mask_root=_negative_mask_root(args),
+        negative_mask_loss_weight=getattr(args, "negative_mask_loss_weight", 1.0),
+        mask_safe_augmentations=not getattr(args, "allow_mask_unsafe_augmentations", False),
     )
 
 
@@ -493,6 +511,8 @@ def main() -> None:
             print(f"use_negative_attention={config.use_negative_attention}")
             if config.negative_mask_root:
                 print(f"negative_mask_root={config.negative_mask_root}")
+                print(f"negative_mask_loss_weight={config.negative_mask_loss_weight}")
+                print(f"mask_safe_augmentations={config.mask_safe_augmentations}")
             for key, value in training_kwargs(config).items():
                 print(f"{key}={value}")
             print(f"artifact_dir={artifact_dir}")

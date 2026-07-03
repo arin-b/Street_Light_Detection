@@ -54,3 +54,5 @@ documentation/literature_review/papers/
 streetlight-env/
 dashboard/frontend/node_modules/
 dashboard/frontend/dist/
+
+.env

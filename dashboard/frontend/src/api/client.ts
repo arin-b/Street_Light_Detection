@@ -196,4 +196,31 @@ export const api = {
       body: JSON.stringify({ base_experiment_id: baseExperimentId, parameters }),
     }),
   getReportUrl: (runId: number) => `${API_BASE}/reports/${runId}/pdf`,
+
+  // Extension — Custom Components
+  listComponents: () =>
+    request<{ name: string; filename: string }[]>("/components"),
+  saveComponent: (name: string, code: string) =>
+    request<{ name: string; filename: string }>("/components", {
+      method: "POST",
+      body: JSON.stringify({ name, code }),
+    }),
+  getComponentCode: (name: string) =>
+    request<{ name: string; code: string }>(`/components/${encodeURIComponent(name)}/code`),
+  deleteComponent: (name: string) =>
+    request<void>(`/components/${encodeURIComponent(name)}`, { method: "DELETE" }),
+
+  // Extension — Architecture Export
+  exportModel: async (nodes: any[], edges: any[]): Promise<string> => {
+    const res = await fetch(`${API_BASE}/architecture/export`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nodes, edges }),
+    });
+    if (!res.ok) {
+      const msg = await res.text();
+      throw new Error(msg || `Export failed with ${res.status}`);
+    }
+    return res.text();
+  },
 };

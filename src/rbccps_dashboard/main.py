@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from rbccps_dashboard.api.routes import components as component_routes
 from rbccps_dashboard.api.routes import experiments, home, yaml_configs
 from rbccps_dashboard.api.routes import monitoring as monitoring_routes
 from rbccps_dashboard.api.routes import training as training_routes
@@ -15,6 +16,7 @@ from rbccps_dashboard.api.routes import visualizations as visualization_routes
 from rbccps_dashboard.api.routes import attention as attention_routes
 from rbccps_dashboard.api.routes import reports as report_routes
 from rbccps_dashboard.api.routes import sweeps as sweep_routes
+from rbccps_dashboard.api.routes import model_export as model_export_routes
 from rbccps_dashboard.api.routes import tracking as tracking_routes
 from rbccps_dashboard.api.routes import websocket as ws_routes
 from rbccps_dashboard.config import get_settings
@@ -45,8 +47,8 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title="Nighttime Streetlight Detection Research Dashboard",
-        version="0.2.0",
-        description="Phase 2 API: training launcher, live logs, and system monitoring.",
+        version="0.5.0",
+        description="Nighttime Streetlight Detection Dashboard — Full Pipeline.",
         lifespan=lifespan,
     )
     app.add_middleware(
@@ -75,6 +77,10 @@ def create_app() -> FastAPI:
     # Phase 4 routers
     app.include_router(sweep_routes.router, prefix="/api")
     app.include_router(report_routes.router, prefix="/api")
+
+    # Extension routers
+    app.include_router(component_routes.router, prefix="/api")
+    app.include_router(model_export_routes.router, prefix="/api")
 
     if settings.frontend_dist.exists():
         app.mount("/", StaticFiles(directory=settings.frontend_dist, html=True), name="dashboard")

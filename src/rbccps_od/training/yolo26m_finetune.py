@@ -38,6 +38,8 @@ class FineTuneConfig:
     use_cse: bool = False
     use_negative_attention: bool = False
     negative_mask_root: Path | None = None
+    negative_mask_loss_weight: float = 1.0
+    mask_safe_augmentations: bool = True
 
 
 @dataclass(frozen=True)
@@ -98,7 +100,7 @@ def training_kwargs(config: FineTuneConfig) -> dict[str, Any]:
     if data_path.suffix.lower() in {".yaml", ".yml"} and data_path.exists():
         data_arg = resolve_dataset_yaml_for_runtime(data_path)
 
-    return {
+    kwargs = {
         "data": str(data_arg),
         "imgsz": config.imgsz,
         "epochs": config.epochs,
@@ -117,6 +119,22 @@ def training_kwargs(config: FineTuneConfig) -> dict[str, Any]:
         "lr0": config.lr0,
         "weight_decay": config.weight_decay,
     }
+    if config.use_negative_attention and config.negative_mask_root is not None and config.mask_safe_augmentations:
+        kwargs.update(
+            {
+                "degrees": 0.0,
+                "translate": 0.0,
+                "scale": 0.0,
+                "shear": 0.0,
+                "perspective": 0.0,
+                "flipud": 0.0,
+                "fliplr": 0.0,
+                "mosaic": 0.0,
+                "mixup": 0.0,
+                "copy_paste": 0.0,
+            }
+        )
+    return kwargs
 
 
 def _jsonable(value: Any) -> Any:
@@ -146,6 +164,8 @@ def _safe_wandb_config(trainer: Any, config: FineTuneConfig) -> dict[str, Any]:
         "use_cse": config.use_cse,
         "use_negative_attention": config.use_negative_attention,
         "negative_mask_root": config.negative_mask_root,
+        "negative_mask_loss_weight": config.negative_mask_loss_weight,
+        "mask_safe_augmentations": config.mask_safe_augmentations,
         "ultralytics_args": vars(trainer.args),
     }
     if config.wandb and config.wandb.config:
@@ -304,6 +324,7 @@ def _build_yolo_for_config(config: FineTuneConfig) -> Any:
             use_geometry_attention=config.use_geometry_attention,
             use_cse=config.use_cse,
             use_negative_attention=config.use_negative_attention,
+            negative_mask_loss_weight=config.negative_mask_loss_weight,
         )
 
     try:
@@ -314,12 +335,12 @@ def _build_yolo_for_config(config: FineTuneConfig) -> Any:
 
 
 def _trainer_for_config(config: FineTuneConfig) -> Any | None:
-    if not config.use_negative_attention or config.negative_mask_root is None:
+    if not config.use_negative_attention:
         return None
 
     from rbccps_od.models.yolo_ablation import negative_mask_trainer
 
-    return negative_mask_trainer(config.negative_mask_root)
+    return negative_mask_trainer(config.negative_mask_root, loss_weight=config.negative_mask_loss_weight)
 
 
 def save_trained_weights(run: TrainingRunResult, artifact_dir: Path) -> dict[str, str]:

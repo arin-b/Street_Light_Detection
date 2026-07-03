@@ -10,6 +10,7 @@ from rbccps_od.training.ablation import (
     selected_cases,
     selected_experiments,
 )
+from rbccps_od.training.yolo26m_finetune import training_kwargs
 
 
 def test_selected_experiments_defaults_to_all():
@@ -113,6 +114,8 @@ def test_config_for_adds_module_flags_to_run_and_artifact(tmp_path: Path):
         lr0=0.001,
         weight_decay=0.0005,
         negative_mask_root=str(tmp_path / "masks"),
+        negative_mask_loss_weight=0.5,
+        allow_mask_unsafe_augmentations=False,
     )
 
     experiment = EXPERIMENT_BY_NAME["original"]
@@ -125,6 +128,12 @@ def test_config_for_adds_module_flags_to_run_and_artifact(tmp_path: Path):
     assert config.use_cse is True
     assert config.use_negative_attention is True
     assert config.negative_mask_root == (tmp_path / "masks").resolve()
+    assert config.negative_mask_loss_weight == 0.5
+    assert config.mask_safe_augmentations is True
+
+    kwargs = training_kwargs(config)
+    assert kwargs["mosaic"] == 0.0
+    assert kwargs["fliplr"] == 0.0
 
 
 def test_wandb_sweep_config_covers_report_grid():

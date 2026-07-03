@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Sequence
 
 import torch
 import torch.nn as nn
@@ -11,117 +11,126 @@ import torch.nn.functional as F
 FeatureMaps = torch.Tensor | list[torch.Tensor] | tuple[torch.Tensor, ...]
 
 
-def _diagonal_pattern(height: int, width: int, *, flip: bool = False) -> torch.Tensor:
-    pattern = torch.zeros(height, width)
-    if height <= 0 or width <= 0:
-        raise ValueError("Geometry kernels must have positive height and width.")
-    if width == 1:
-        pattern[:, 0] = 1.0
-        return pattern
+class GeometryAttentionBlock(nn.Module):
+    """PDF-style geometry-aware attention using vertical and horizontal context."""
 
-    for row in range(height):
-        col = round(row * (width - 1) / max(1, height - 1))
-        if flip:
-            col = width - 1 - col
-        pattern[row, col] = 1.0
-    return pattern
+    def __init__(self, channels: int, *, kernel_size: int = 7, neutral_bias: float = 4.0) -> None:
+        super().__init__()
+        if channels <= 0:
+            raise ValueError("Geometry attention channels must be positive.")
+        if kernel_size <= 0 or kernel_size % 2 == 0:
+            raise ValueError("Geometry attention kernel_size must be a positive odd integer.")
 
+        padding = kernel_size // 2
+        self.conv_v = nn.Conv2d(channels, channels, kernel_size=(kernel_size, 1), padding=(padding, 0))
+        self.conv_h = nn.Conv2d(channels, channels, kernel_size=(1, kernel_size), padding=(0, padding))
+        self.fuse = nn.Conv2d(2 * channels, channels, kernel_size=1)
 
-def _vertical_pattern(height: int) -> torch.Tensor:
-    if height <= 0:
-        raise ValueError("Vertical geometry kernel must have positive height.")
-    return torch.ones(height, 1)
+        # Start close to an identity gate so adding the module does not shock pretrained YOLO weights.
+        nn.init.zeros_(self.fuse.weight)
+        nn.init.constant_(self.fuse.bias, neutral_bias)
 
-
-def _init_single_channel_filter(conv: nn.Conv2d, pattern: torch.Tensor) -> None:
-    normalized = pattern / max(float(pattern.sum()), 1.0)
-    with torch.no_grad():
-        conv.weight.copy_(normalized.view(1, 1, *normalized.shape))
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        vertical = self.conv_v(x)
+        horizontal = self.conv_h(x)
+        attention = torch.sigmoid(self.fuse(torch.cat([vertical, horizontal], dim=1)))
+        return x * attention
 
 
 class GeometryAttention(nn.Module):
-    """Feature attention from diagonal and vertical streetlight-geometry filters."""
+    """Multi-scale geometry-aware attention for YOLO detect-head feature lists."""
 
     def __init__(
         self,
-        channels: int | None = None,
+        channels: int | Sequence[int],
         *,
-        diagonal_kernel: tuple[int, int] = (7, 3),
-        vertical_kernel: tuple[int, int] = (7, 1),
-        combine: str = "sum",
-        strength: float = 1.0,
-        learnable: bool = True,
+        kernel_size: int = 7,
+        neutral_bias: float = 4.0,
     ) -> None:
         super().__init__()
-        del channels
-        if vertical_kernel[1] != 1:
-            raise ValueError("The vertical pole filter must use a single-column kernel.")
-        if combine not in {"sum", "max"}:
-            raise ValueError("combine must be either 'sum' or 'max'.")
-
-        diag_padding = (diagonal_kernel[0] // 2, diagonal_kernel[1] // 2)
-        vertical_padding = (vertical_kernel[0] // 2, 0)
-        self.left_diagonal = nn.Conv2d(1, 1, diagonal_kernel, padding=diag_padding, bias=False)
-        self.right_diagonal = nn.Conv2d(1, 1, diagonal_kernel, padding=diag_padding, bias=False)
-        self.vertical = nn.Conv2d(1, 1, vertical_kernel, padding=vertical_padding, bias=False)
-        self.combine = combine
-        self.strength = float(strength)
-
-        height, width = diagonal_kernel
-        _init_single_channel_filter(self.left_diagonal, _diagonal_pattern(height, width))
-        _init_single_channel_filter(self.right_diagonal, _diagonal_pattern(height, width, flip=True))
-        _init_single_channel_filter(self.vertical, _vertical_pattern(vertical_kernel[0]))
-
-        for parameter in self.parameters():
-            parameter.requires_grad = learnable
-
-    def _forward_tensor(self, x: torch.Tensor) -> torch.Tensor:
-        pooled = x.mean(dim=1, keepdim=True)
-        responses = torch.cat(
-            [
-                self.left_diagonal(pooled),
-                self.right_diagonal(pooled),
-                self.vertical(pooled),
-            ],
-            dim=1,
+        self.channels = _normalise_channels(channels)
+        self.blocks = nn.ModuleList(
+            GeometryAttentionBlock(channel, kernel_size=kernel_size, neutral_bias=neutral_bias)
+            for channel in self.channels
         )
-        attention = torch.sigmoid(responses)
-        if self.combine == "max":
-            mask = attention.max(dim=1, keepdim=True).values
-        else:
-            mask = attention.sum(dim=1, keepdim=True).clamp(0.0, 1.0)
-        return x * (1.0 + self.strength * mask)
 
     def forward(self, features: FeatureMaps) -> FeatureMaps:
-        if isinstance(features, list):
-            return [self._forward_tensor(feature) for feature in features]
-        if isinstance(features, tuple):
-            return tuple(self._forward_tensor(feature) for feature in features)
-        return self._forward_tensor(features)
+        tensors, container = _feature_sequence(features)
+        _validate_feature_count(tensors, self.blocks, "geometry attention")
+        outputs = [block(feature) for block, feature in zip(self.blocks, tensors)]
+        return _restore_feature_sequence(outputs, container)
 
 
-class NegativeMaskBlock(nn.Module):
-    """Suppress feature activations inside known negative segmentation regions."""
+class SuppressionBranch(nn.Module):
+    """Predict a negative attention logit map for one YOLO feature scale."""
+
+    def __init__(self, channels: int, *, reduction: int = 4, init_bias: float = -4.0) -> None:
+        super().__init__()
+        if channels <= 0:
+            raise ValueError("SuppressionBranch channels must be positive.")
+        hidden_channels = max(1, channels // max(1, reduction))
+        self.conv1 = nn.Conv2d(channels, hidden_channels, kernel_size=3, padding=1)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv2 = nn.Conv2d(hidden_channels, 1, kernel_size=1)
+        nn.init.constant_(self.conv2.bias, init_bias)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.conv2(self.relu(self.conv1(x)))
+
+
+class NegativeAttention(nn.Module):
+    """Learned negative attention branch with supervised BCE mask loss."""
+
+    def __init__(
+        self,
+        channels: int | Sequence[int],
+        *,
+        reduction: int = 4,
+        init_bias: float = -4.0,
+    ) -> None:
+        super().__init__()
+        self.channels = _normalise_channels(channels)
+        self.branches = nn.ModuleList(
+            SuppressionBranch(channel, reduction=reduction, init_bias=init_bias) for channel in self.channels
+        )
+        self.last_logits: tuple[torch.Tensor, ...] = ()
 
     def forward(self, features: FeatureMaps, negative_mask: torch.Tensor | None = None) -> FeatureMaps:
-        if negative_mask is None:
-            return features
-        if isinstance(features, list):
-            return [self._forward_tensor(feature, negative_mask) for feature in features]
-        if isinstance(features, tuple):
-            return tuple(self._forward_tensor(feature, negative_mask) for feature in features)
-        return self._forward_tensor(features, negative_mask)
+        del negative_mask  # The target mask is used by mask_loss(); inference predicts its own mask.
+        tensors, container = _feature_sequence(features)
+        _validate_feature_count(tensors, self.branches, "negative attention")
+        outputs: list[torch.Tensor] = []
+        logits: list[torch.Tensor] = []
+        for branch, feature in zip(self.branches, tensors):
+            logit = branch(feature)
+            logits.append(logit)
+            outputs.append(feature * (1.0 - torch.sigmoid(logit)))
+        self.last_logits = tuple(logits)
+        return _restore_feature_sequence(outputs, container)
 
-    def _forward_tensor(self, features: torch.Tensor, negative_mask: torch.Tensor) -> torch.Tensor:
-        mask = _as_batched_mask(negative_mask, device=features.device, dtype=features.dtype)
-        if mask.shape[0] == 1 and features.shape[0] != 1:
-            mask = mask.expand(features.shape[0], -1, -1, -1)
-        if mask.shape[0] != features.shape[0]:
-            raise ValueError(
-                f"Negative mask batch size {mask.shape[0]} does not match feature batch size {features.shape[0]}."
-            )
-        mask = F.interpolate(mask, size=features.shape[-2:], mode="nearest").clamp(0.0, 1.0)
-        return features * (1.0 - mask)
+    def mask_loss(self, target_mask: torch.Tensor | None) -> torch.Tensor:
+        """Return pixel BCE between predicted negative maps and annotated negative masks."""
+        if not self.last_logits:
+            return _zero_from_module(self)
+        if target_mask is None:
+            return _zero_from_tensor(self.last_logits[0])
+
+        losses: list[torch.Tensor] = []
+        for logits in self.last_logits:
+            target = _as_batched_mask(target_mask, device=logits.device, dtype=logits.dtype)
+            if target.shape[0] == 1 and logits.shape[0] != 1:
+                target = target.expand(logits.shape[0], -1, -1, -1)
+            if target.shape[0] != logits.shape[0]:
+                raise ValueError(
+                    f"Negative mask batch size {target.shape[0]} does not match feature batch size {logits.shape[0]}."
+                )
+            target = F.interpolate(target, size=logits.shape[-2:], mode="nearest").clamp(0.0, 1.0)
+            losses.append(F.binary_cross_entropy_with_logits(logits, target))
+        return torch.stack(losses).mean()
+
+
+class NegativeMaskBlock(NegativeAttention):
+    """Backward-compatible name for the learned negative attention branch."""
 
 
 def _as_batched_mask(mask: torch.Tensor, *, device: torch.device, dtype: torch.dtype) -> torch.Tensor:
@@ -132,6 +141,49 @@ def _as_batched_mask(mask: torch.Tensor, *, device: torch.device, dtype: torch.d
     elif mask.ndim != 4:
         raise ValueError("Negative masks must have shape HxW, BxHxW, or Bx1xHxW.")
     return mask.to(device=device, dtype=dtype)
+
+
+def _normalise_channels(channels: int | Sequence[int]) -> tuple[int, ...]:
+    if isinstance(channels, int):
+        return (channels,)
+    values = tuple(int(channel) for channel in channels)
+    if not values:
+        raise ValueError("At least one channel count is required.")
+    if any(channel <= 0 for channel in values):
+        raise ValueError("Channel counts must be positive.")
+    return values
+
+
+def _feature_sequence(features: FeatureMaps) -> tuple[list[torch.Tensor], type | None]:
+    if isinstance(features, list):
+        return features, list
+    if isinstance(features, tuple):
+        return list(features), tuple
+    return [features], None
+
+
+def _restore_feature_sequence(features: list[torch.Tensor], container: type | None) -> FeatureMaps:
+    if container is list:
+        return features
+    if container is tuple:
+        return tuple(features)
+    return features[0]
+
+
+def _validate_feature_count(features: list[torch.Tensor], modules: nn.ModuleList, name: str) -> None:
+    if len(features) != len(modules):
+        raise ValueError(f"Expected {len(modules)} {name} feature maps, got {len(features)}.")
+
+
+def _zero_from_tensor(tensor: torch.Tensor) -> torch.Tensor:
+    return tensor.sum() * 0.0
+
+
+def _zero_from_module(module: nn.Module) -> torch.Tensor:
+    parameter = next(module.parameters(), None)
+    if parameter is None:
+        return torch.tensor(0.0)
+    return parameter.sum() * 0.0
 
 
 def candidate_negative_mask_paths(

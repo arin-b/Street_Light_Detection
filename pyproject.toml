@@ -32,6 +32,8 @@ dashboard = [
   "psutil>=5.9.0",
   "pynvml>=12.0.0",
   "reportlab>=4.0.0",
+  "google-genai>=1.0.0",
+  "python-dotenv>=1.0.0",
 ]
 
 [project.scripts]
@@ -48,6 +50,9 @@ where = ["src"]
 [tool.setuptools.package-data]
 rbccps_annotator = ["static/*.html", "static/*.css", "static/*.js"]
 
+[tool.pyright]
+extraPaths = ["."]
+
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 testpaths = ["tests"]

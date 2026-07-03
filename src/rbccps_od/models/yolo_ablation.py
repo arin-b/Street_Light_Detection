@@ -3,6 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+import weakref
+
+import torch
 
 
 @dataclass(frozen=True)
@@ -24,9 +27,9 @@ class DetectAttentionInputHook:
         if not args:
             return None
         features = args[0]
-        if module._rbccps_use_negative_attention:
-            features = module.rbccps_negative_attention(features, getattr(module, "_rbccps_negative_mask", None))
-        if module._rbccps_use_geometry_attention:
+        if module._rbccps_use_negative_attention and hasattr(module, "rbccps_negative_attention"):
+            features = module.rbccps_negative_attention(features)
+        if module._rbccps_use_geometry_attention and hasattr(module, "rbccps_geometry_attention"):
             features = module.rbccps_geometry_attention(features)
         return (features, *args[1:])
 
@@ -49,6 +52,36 @@ class NegativeMaskRootPostHook:
     def __call__(self, _module: Any, _args: tuple[Any, ...], _output: Any) -> None:
         for head in self.detect_heads:
             head._rbccps_negative_mask = None
+
+
+class NegativeAttentionLossWrapper:
+    """Add supervised negative-attention BCE to the native YOLO detection loss."""
+
+    def __init__(self, base_criterion: Any, model: Any, loss_weight: float) -> None:
+        self.base_criterion = base_criterion
+        self._model_ref = weakref.ref(model)
+        self.loss_weight = float(loss_weight)
+
+    def __call__(self, preds: Any, batch: dict[str, Any]) -> tuple[torch.Tensor, torch.Tensor]:
+        loss, loss_items = self.base_criterion(preds, batch)
+        model = self._model_ref() if self._model_ref is not None else None
+        mask_loss = collect_negative_attention_loss(model, batch.get("negative_mask")) if model is not None else loss.sum() * 0.0
+        weighted_mask_loss = mask_loss * self.loss_weight
+        batch_size = int(batch["img"].shape[0]) if isinstance(batch, dict) and "img" in batch else 1
+        mask_component = (weighted_mask_loss * batch_size).reshape(1)
+        loss = torch.cat([loss.reshape(-1), mask_component])
+        loss_items = torch.cat([loss_items.reshape(-1), weighted_mask_loss.detach().reshape(1)])
+        return loss, loss_items
+
+    def __getstate__(self) -> dict[str, Any]:
+        state = self.__dict__.copy()
+        state["_model_ref"] = None
+        return state
+
+    def update(self) -> None:
+        update = getattr(self.base_criterion, "update", None)
+        if update is not None:
+            update()
 
 
 def replace_c2f_with_cse(module: Any) -> int:
@@ -80,6 +113,7 @@ def apply_ablation_modules(
     use_geometry_attention: bool = False,
     use_cse: bool = False,
     use_negative_attention: bool = False,
+    negative_mask_loss_weight: float = 1.0,
 ) -> AppliedAblationModules:
     cse_replacements = 0
     if use_cse:
@@ -98,8 +132,8 @@ def apply_ablation_modules(
 
     negative_mask_hooks = 0
     if use_negative_attention and detect_heads:
-        _register_negative_mask_hooks(pytorch_model, detect_heads)
-        negative_mask_hooks = 1
+        pytorch_model._rbccps_negative_mask_loss_weight = float(negative_mask_loss_weight)
+        negative_mask_hooks = len(detect_heads)
 
     return AppliedAblationModules(
         cse_replacements=cse_replacements,
@@ -135,6 +169,7 @@ def build_yolo26_ablation_model(
     use_geometry_attention: bool = False,
     use_cse: bool = False,
     use_negative_attention: bool = False,
+    negative_mask_loss_weight: float = 1.0,
 ) -> Any:
     try:
         from ultralytics import YOLO
@@ -147,12 +182,13 @@ def build_yolo26_ablation_model(
         use_geometry_attention=use_geometry_attention,
         use_cse=use_cse,
         use_negative_attention=use_negative_attention,
+        negative_mask_loss_weight=negative_mask_loss_weight,
     )
     yolo.rbccps_ablation_modules = summary
     return yolo
 
 
-def negative_mask_trainer(mask_root: str | Path):
+def negative_mask_trainer(mask_root: str | Path | None, *, loss_weight: float = 1.0):
     """Build an Ultralytics trainer that adds negative segmentation masks to each batch."""
 
     try:
@@ -163,12 +199,22 @@ def negative_mask_trainer(mask_root: str | Path):
         except ImportError as exc:
             raise SystemExit("ultralytics is not installed. Install the training extras before running ablations.") from exc
 
-    resolved_mask_root = Path(mask_root).expanduser().resolve()
+    resolved_mask_root = Path(mask_root).expanduser().resolve() if mask_root is not None else None
 
     class RBCCPSNegativeMaskTrainer(DetectionTrainer):
+        def set_model_attributes(self) -> None:
+            super().set_model_attributes()
+            install_negative_attention_loss(self.model, loss_weight=loss_weight)
+
+        def get_validator(self):
+            validator = super().get_validator()
+            self.loss_names = "box_loss", "cls_loss", "dfl_loss", "mask_loss"
+            return validator
+
         def preprocess_batch(self, batch: dict[str, Any]) -> dict[str, Any]:
             batch = super().preprocess_batch(batch)
-            batch["negative_mask"] = _load_batch_negative_masks(batch, resolved_mask_root)
+            if resolved_mask_root is not None and "negative_mask" not in batch:
+                batch["negative_mask"] = _load_batch_negative_masks(batch, resolved_mask_root)
             return batch
 
     return RBCCPSNegativeMaskTrainer
@@ -216,7 +262,15 @@ def _patch_detect_head(
     use_geometry_attention: bool,
     use_negative_attention: bool,
 ) -> None:
-    if getattr(detect_head, "_rbccps_attention_patched", False):
+    channels = _detect_head_input_channels(detect_head)
+    _ensure_attention_modules(
+        detect_head,
+        channels,
+        use_geometry_attention=use_geometry_attention,
+        use_negative_attention=use_negative_attention,
+    )
+    has_hook = _has_attention_input_hook(detect_head)
+    if getattr(detect_head, "_rbccps_attention_patched", False) and has_hook:
         detect_head._rbccps_use_geometry_attention = (
             detect_head._rbccps_use_geometry_attention or use_geometry_attention
         )
@@ -225,15 +279,33 @@ def _patch_detect_head(
         )
         return
 
-    from rbccps_od.models.attention import GeometryAttention, NegativeMaskBlock
-
-    detect_head.rbccps_geometry_attention = GeometryAttention()
-    detect_head.rbccps_negative_attention = NegativeMaskBlock()
     detect_head._rbccps_use_geometry_attention = use_geometry_attention
     detect_head._rbccps_use_negative_attention = use_negative_attention
     detect_head._rbccps_negative_mask = None
-    detect_head.register_forward_pre_hook(DetectAttentionInputHook())
+    if not has_hook:
+        detect_head.register_forward_pre_hook(DetectAttentionInputHook())
     detect_head._rbccps_attention_patched = True
+
+
+def _ensure_attention_modules(
+    detect_head: Any,
+    channels: tuple[int, ...],
+    *,
+    use_geometry_attention: bool,
+    use_negative_attention: bool,
+) -> None:
+    if use_geometry_attention and not hasattr(detect_head, "rbccps_geometry_attention"):
+        from rbccps_od.models.attention import GeometryAttention
+
+        detect_head.rbccps_geometry_attention = GeometryAttention(channels)
+    if use_negative_attention and not hasattr(detect_head, "rbccps_negative_attention"):
+        from rbccps_od.models.attention import NegativeAttention
+
+        detect_head.rbccps_negative_attention = NegativeAttention(channels)
+
+
+def _has_attention_input_hook(detect_head: Any) -> bool:
+    return any(isinstance(hook, DetectAttentionInputHook) for hook in detect_head._forward_pre_hooks.values())
 
 
 def _register_negative_mask_hooks(pytorch_model: Any, detect_heads: list[Any]) -> None:
@@ -244,11 +316,60 @@ def _register_negative_mask_hooks(pytorch_model: Any, detect_heads: list[Any]) -
     pytorch_model._rbccps_negative_mask_hooks = True
 
 
+def install_negative_attention_loss(pytorch_model: Any, *, loss_weight: float = 1.0) -> None:
+    """Wrap the model criterion with the negative-mask BCE auxiliary loss."""
+
+    if not _detect_heads(pytorch_model):
+        return
+    if getattr(pytorch_model, "criterion", None) is None:
+        pytorch_model.criterion = pytorch_model.init_criterion()
+    if isinstance(pytorch_model.criterion, NegativeAttentionLossWrapper):
+        pytorch_model.criterion.loss_weight = float(loss_weight)
+        return
+    pytorch_model.criterion = NegativeAttentionLossWrapper(pytorch_model.criterion, pytorch_model, loss_weight)
+
+
+def collect_negative_attention_loss(pytorch_model: Any, target_mask: torch.Tensor | None) -> torch.Tensor:
+    losses: list[torch.Tensor] = []
+    for head in _detect_heads(pytorch_model):
+        attention = getattr(head, "rbccps_negative_attention", None)
+        if attention is not None and getattr(head, "_rbccps_use_negative_attention", False):
+            losses.append(attention.mask_loss(target_mask))
+    if losses:
+        return torch.stack(losses).mean()
+    parameter = next(pytorch_model.parameters(), None)
+    if parameter is None:
+        return torch.tensor(0.0)
+    return parameter.sum() * 0.0
+
+
 def _extract_negative_mask(payload: Any) -> Any:
     if isinstance(payload, dict):
         for key in ("negative_mask", "negative_masks", "seg_mask", "seg_masks"):
             if key in payload:
                 return payload[key]
+    return None
+
+
+def _detect_head_input_channels(detect_head: Any) -> tuple[int, ...]:
+    channels: list[int] = []
+    for scale_head in getattr(detect_head, "cv2", []):
+        channel = _first_conv_in_channels(scale_head)
+        if channel is None:
+            raise ValueError("Could not infer YOLO detect-head input channels for attention modules.")
+        channels.append(channel)
+    if not channels:
+        raise ValueError("YOLO detect head exposes no feature scales for attention modules.")
+    return tuple(channels)
+
+
+def _first_conv_in_channels(module: Any) -> int | None:
+    for child in module.modules():
+        conv = getattr(child, "conv", None)
+        if conv is not None and hasattr(conv, "in_channels"):
+            return int(conv.in_channels)
+        if hasattr(child, "in_channels"):
+            return int(child.in_channels)
     return None
 
 
@@ -260,12 +381,13 @@ def _load_batch_negative_masks(batch: dict[str, Any], mask_root: Path) -> Any:
     if isinstance(image_paths, (str, Path)):
         image_paths = [image_paths]
     height, width = image_tensor.shape[-2:]
+    batch_size = int(image_tensor.shape[0])
     masks = [
         _load_negative_mask_for_image(Path(image_path), mask_root, size=(height, width))
-        for image_path in image_paths
+        for image_path in list(image_paths)[:batch_size]
     ]
-    if not masks:
-        masks = [torch.zeros((1, height, width), dtype=image_tensor.dtype)]
+    while len(masks) < batch_size:
+        masks.append(torch.zeros((1, height, width), dtype=torch.float32))
     return torch.stack(masks, dim=0).to(device=image_tensor.device, dtype=image_tensor.dtype)
 
 

@@ -262,6 +262,20 @@ export function MonitoringPage() {
         </Paper>
       )}
 
+      {/* No GPU fallback */}
+      {gpuInfo !== null && !gpuInfo.available && (
+        <Alert severity="info" variant="outlined" sx={{ borderRadius: 2 }}>
+          <Typography variant="subtitle2" fontWeight={700}>
+            No GPU Available
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            No NVIDIA GPU was detected on this system. GPU utilization and VRAM
+            metrics are unavailable. Training will fall back to CPU unless a GPU
+            is installed and the NVIDIA driver is configured.
+          </Typography>
+        </Alert>
+      )}
+
       {/* Network */}
       <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
         <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>

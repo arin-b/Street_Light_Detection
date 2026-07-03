@@ -149,7 +149,7 @@ export function Shell({ page, onPageChange, children }: ShellProps) {
                 RBCCPS
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                Phase 3 Workspace
+                Full Pipeline
               </Typography>
             </Stack>
           </Toolbar>
