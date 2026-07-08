@@ -1,0 +1,34 @@
+﻿[
+    {
+        "batch":  "batch_001",
+        "annotation_json":  "annotation_llm.json",
+        "source_zip":  "chatgpt_streetlight_measurement_batch_001_100.zip",
+        "annotation_count":  100,
+        "image_count":  100,
+        "image_manifest":  "batch_001\\image_batch\\chatgpt_streetlight_measurement_batch_001_100\\image_manifest.csv"
+    },
+    {
+        "batch":  "batch_002",
+        "annotation_json":  "annotation_llm.json",
+        "source_zip":  "chatgpt_streetlight_measurement_batch_002_100.zip",
+        "annotation_count":  100,
+        "image_count":  100,
+        "image_manifest":  "batch_002\\image_batch\\chatgpt_streetlight_measurement_batch_002_100\\image_manifest.csv"
+    },
+    {
+        "batch":  "batch_003",
+        "annotation_json":  "annotation_llm.json",
+        "source_zip":  "chatgpt_streetlight_measurement_batch_003_100.zip",
+        "annotation_count":  100,
+        "image_count":  100,
+        "image_manifest":  "batch_003\\image_batch\\chatgpt_streetlight_measurement_batch_003_100\\image_manifest.csv"
+    },
+    {
+        "batch":  "batch_004",
+        "annotation_json":  "annotation_llm.json",
+        "source_zip":  "chatgpt_streetlight_measurement_batch_004_100.zip",
+        "annotation_count":  100,
+        "image_count":  100,
+        "image_manifest":  "batch_004\\image_batch\\chatgpt_streetlight_measurement_batch_004_100\\image_manifest.csv"
+    }
+]

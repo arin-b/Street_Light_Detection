@@ -114,6 +114,7 @@ def write_json_report(
     video_meta: dict[str, Any],
     filter_stats: dict[str, Any],
     eval_metrics: dict[str, Any] | None = None,
+    location_prior_report: dict[str, Any] | None = None,
 ) -> Path:
     """Write the complete audit report as JSON."""
     quality_summary = _lamp_quality_summary(lamps, filter_stats)
@@ -139,6 +140,8 @@ def write_json_report(
             "available": False,
             "reason": "No ground-truth labels were provided, so precision, recall, F1, and mAP were not computed.",
         }
+    if location_prior_report:
+        report["location_prior"] = location_prior_report
 
     path = output_dir / "audit_report.json"
     _write_json(path, report)
@@ -157,6 +160,8 @@ def write_csv_report(
     rows = []
     for lamp in lamps:
         observed_frames = max(lamp.frames_on + lamp.frames_off, 1)
+        location = lamp.location or {}
+        prior_match = (lamp.existence_prior or {}).get("match") or {}
         rows.append({
             "track_id": lamp.track_id,
             "status": lamp.status,
@@ -178,6 +183,16 @@ def write_csv_report(
             "frames_off": lamp.frames_off,
             "on_fraction_pct": round(lamp.frames_on / observed_frames * 100.0, 2),
             "brightness_range": round(lamp.max_brightness - lamp.min_brightness, 2),
+            "latitude": location.get("latitude", ""),
+            "longitude": location.get("longitude", ""),
+            "gps_accuracy_m": location.get("gps_accuracy_m", ""),
+            "device_id": location.get("device_id", ""),
+            "route_group": location.get("route_group", ""),
+            "prior_candidate_lamp_id": (lamp.existence_prior or {}).get("candidate_lamp_id", ""),
+            "prior_claim": prior_match.get("claim", ""),
+            "prior_confidence": prior_match.get("confidence", ""),
+            "prior_distance_m": prior_match.get("distance_m", ""),
+            "prior_new_candidate": (lamp.existence_prior or {}).get("new_candidate", ""),
         })
 
     path = output_dir / "audit_report.csv"
@@ -196,6 +211,7 @@ def write_markdown_report(
     video_meta: dict[str, Any],
     filter_stats: dict[str, Any],
     eval_metrics: dict[str, Any] | None = None,
+    location_prior_report: dict[str, Any] | None = None,
 ) -> Path:
     """Write a human-readable Markdown audit report."""
     lines: list[str] = []
@@ -285,6 +301,28 @@ def write_markdown_report(
         lines.append("|--------|-------|")
         for reason, count in sorted(reasons.items(), key=lambda x: -x[1]):
             lines.append(f"| {reason} | {count} |")
+        lines.append("")
+
+    if location_prior_report:
+        query = location_prior_report.get("query", {})
+        updates = location_prior_report.get("current_run_updates", {})
+        summary = location_prior_report.get("prior_summary", {})
+        lines.append("## Location Prior")
+        lines.append("")
+        lines.append("| Signal | Value |")
+        lines.append("|--------|-------|")
+        lines.append(f"| Query claim | {query.get('claim', 'not queried')} |")
+        if query.get("match"):
+            match = query["match"]
+            lines.append(f"| Query candidate | {match.get('candidate_lamp_id', '')} |")
+            lines.append(f"| Query confidence | {match.get('confidence', '')} |")
+            lines.append(f"| Query distance | {match.get('distance_m', '')} m |")
+        lines.append(f"| Known candidates in prior | {summary.get('known_lamp_candidates', 0)} |")
+        lines.append(f"| Location evidence from this run | {updates.get('location_evidence_count', 0)} |")
+        lines.append(f"| Matched existing candidates | {updates.get('matched_existing_candidates', 0)} |")
+        lines.append(f"| New candidates created | {updates.get('new_candidates', 0)} |")
+        if location_prior_report.get("updated_prior_path"):
+            lines.append(f"| Updated prior | `{location_prior_report['updated_prior_path']}` |")
         lines.append("")
 
     lines.append("## 📈 Run Quality Signals")

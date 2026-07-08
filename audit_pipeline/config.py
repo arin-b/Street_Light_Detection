@@ -111,6 +111,29 @@ class EvaluationConfig:
 
 
 @dataclass
+class LocationPriorConfig:
+    """Device- and route-aware location memory for repeated audits."""
+
+    prior_path: str | None = None
+    output_path: str | None = None
+    location_samples_path: str | None = None
+    capture_device_id: str | None = None
+    route_group: str | None = None
+    capture_latitude: float | None = None
+    capture_longitude: float | None = None
+    capture_gps_accuracy_m: float | None = None
+    query_latitude: float | None = None
+    query_longitude: float | None = None
+    query_gps_accuracy_m: float | None = None
+    prior_only: bool = False
+    match_radius_m: float = 12.0
+    good_gps_match_radius_m: float = 8.0
+    min_observations_for_existing: int = 2
+    min_devices_for_high_confidence: int = 2
+    existence_confidence_threshold: float = 0.72
+
+
+@dataclass
 class AuditPipelineConfig:
     """Top-level config aggregating all sub-configs."""
 
@@ -122,6 +145,7 @@ class AuditPipelineConfig:
     measurement: MeasurementConfig = field(default_factory=MeasurementConfig)
     aggregation: AggregationConfig = field(default_factory=AggregationConfig)
     evaluation: EvaluationConfig = field(default_factory=EvaluationConfig)
+    location_prior: LocationPriorConfig = field(default_factory=LocationPriorConfig)
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise the entire config for the report."""

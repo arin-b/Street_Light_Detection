@@ -1,0 +1,21 @@
+\relax 
+\@writefile{toc}{\contentsline {section}{\numberline {1}Annotated Data is Diverse and Operationally Detailed}{1}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Baseline annotation numbers.}}{1}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Confounder types and counts. The dataset contains a variety of bright confounders that could be mistaken for streetlights.}}{1}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {2}Representation-Level Shift Is Directly Measurable}{1}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Embedding-level shift evidence. Training images and deployment video frames were embedded with the detector backbone that is YOLOv26.}}{1}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces A domain classifier separates training and deployment embeddings at \(93.75\%\), far above chance. This is direct feature-space evidence of deployment shift.}}{2}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}Literature Shows This Is A General Problem}{2}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Local literature-review evidence that mobile night-time streetlight detection and measurement face domain shift beyond this dataset.}}{2}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4}Labelled Examples Show Meticulous Operational Annotation}{3}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Example A: quiet campus intersection with multiple lamp heads, visible poles, sign/building-light confounders, and a foreground hood-reflection polygon. Green=lamp, blue=pole, red=confounder, yellow=polygon.}}{3}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Example B: separate lamp/pole tracks are labelled alongside vehicle headlights, a reflective sign, public road surface, and approximate lit area.}}{3}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Example C: busy arterial scene with streetlight tracks separated from vehicle lights, auto-rickshaw reflections, and shopfront/window bright sources.}}{4}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Example D: multi-lane traffic scene with pole-linked lamps labelled separately from taillights, vehicle windows, headlights, and reflections.}}{4}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}Diverse Labelling Does Not Guarantee Operational Accuracy}{5}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces End-to-end deployment shift despite the presence of diverse baseline labels.}}{5}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Diverse labels do not prevent operational amplification: shifted or negative inputs produce excess detector tracks and unusable downstream reports.}}{5}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6}Measurement Error Depends on Detection Error}{5}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces Extra detector tracks propagate into invalid measurement reports. Measurement is not independent of detection. False or duplicated detections become false audit objects.}}{5}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7}Conclusive Argument}{5}{}\protected@file@percent }
+\gdef \@abspage@last{5}

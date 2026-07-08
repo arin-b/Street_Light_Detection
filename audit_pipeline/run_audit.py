@@ -24,6 +24,7 @@ import json
 import sys
 import time
 from collections import defaultdict
+from datetime import datetime
 from pathlib import Path
 from typing import Any, TypedDict
 
@@ -36,6 +37,7 @@ from audit_pipeline.config import (
     DEFAULT_STREETLIGHT_TARGET_LABELS,
     DetectorConfig,
     EvaluationConfig,
+    LocationPriorConfig,
     MeasurementConfig,
     MultiCueConfig,
     TrackerConfig,
@@ -62,6 +64,16 @@ from audit_pipeline.report_generator import (
     write_json_report,
     write_markdown_report,
 )
+from audit_pipeline.location_prior import (
+    IMPLEMENTATION as LOCATION_PRIOR_IMPLEMENTATION,
+    LocationPriorSettings,
+    LocationPriorStore,
+    build_location_prior_report,
+    evidence_for_lamp,
+    load_location_samples,
+    static_location_sample,
+    write_location_prior_report,
+)
 
 
 # ================================================================== #
@@ -76,9 +88,9 @@ def parse_args() -> argparse.Namespace:
     )
 
     # ── Required ─────────────────────────────────────────────────────
-    p.add_argument("--video", required=True,
+    p.add_argument("--video",
                    help="Path to the input video.")
-    p.add_argument("--model", required=True,
+    p.add_argument("--model",
                    help="Path to YOLO fine-tuned weights (.pt).")
 
     # ── Output ───────────────────────────────────────────────────────
@@ -156,6 +168,42 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--gt-status-file",
                    help="CSV with (lamp_id, status) ground truth.")
 
+    # ── Location prior / audit memory ────────────────────────────────
+    p.add_argument("--location-prior",
+                   help="Existing known-lamp prior JSON, or measurement-block route_aggregation.json, to query/update.")
+    p.add_argument("--write-location-prior",
+                   help="Where to write the updated known-lamp prior. Default: <output-dir>/known_lamp_prior.json")
+    p.add_argument("--location-samples",
+                   help="CSV/JSON frame telemetry with frame_index, latitude, longitude, gps_accuracy_m, device_id, route_group.")
+    p.add_argument("--capture-device-id",
+                   help="Device ID for this audit pass when telemetry omits it.")
+    p.add_argument("--route-group",
+                   help="Route or area group for this audit pass.")
+    p.add_argument("--capture-lat", type=float,
+                   help="Static latitude fallback for the whole capture when per-frame telemetry is unavailable.")
+    p.add_argument("--capture-lon", type=float,
+                   help="Static longitude fallback for the whole capture when per-frame telemetry is unavailable.")
+    p.add_argument("--capture-gps-accuracy-m", type=float,
+                   help="GPS accuracy for --capture-lat/--capture-lon.")
+    p.add_argument("--prior-query-lat", type=float,
+                   help="Latitude to query against the location prior before running detection.")
+    p.add_argument("--prior-query-lon", type=float,
+                   help="Longitude to query against the location prior before running detection.")
+    p.add_argument("--prior-query-gps-accuracy-m", type=float,
+                   help="GPS accuracy for --prior-query-lat/--prior-query-lon.")
+    p.add_argument("--prior-only", action="store_true",
+                   help="Only query the location prior; skip video detection and measurement.")
+    p.add_argument("--prior-match-radius-m", type=float, default=12.0,
+                   help="GPS merge/query radius for location-prior candidates.")
+    p.add_argument("--prior-good-gps-match-radius-m", type=float, default=8.0,
+                   help="Stricter merge/query radius when both positions have good GPS.")
+    p.add_argument("--prior-min-observations", type=int, default=2,
+                   help="Observations needed before the prior can claim that a lamp likely exists.")
+    p.add_argument("--prior-min-devices", type=int, default=2,
+                   help="Distinct devices needed to strengthen the known-lamp claim.")
+    p.add_argument("--prior-existence-threshold", type=float, default=0.72,
+                   help="Confidence threshold for known_lamp_likely_exists.")
+
     # ── Misc ─────────────────────────────────────────────────────────
     p.add_argument("--dry-run", action="store_true",
                    help="Print resolved config and exit.")
@@ -172,10 +220,10 @@ def parse_args() -> argparse.Namespace:
 def build_config(args: argparse.Namespace) -> AuditPipelineConfig:
     """Build the full pipeline config from CLI args."""
     return AuditPipelineConfig(
-        video_path=str(Path(args.video).resolve()),
+        video_path=str(Path(args.video).resolve()) if args.video else "",
         output_dir=args.output_dir,
         detector=DetectorConfig(
-            model_path=str(Path(args.model).resolve()),
+            model_path=str(Path(args.model).resolve()) if args.model else "",
             conf_threshold=args.conf,
             iou_threshold=args.iou,
             imgsz=args.imgsz,
@@ -216,6 +264,25 @@ def build_config(args: argparse.Namespace) -> AuditPipelineConfig:
             gt_labels_dir=args.gt_labels,
             gt_status_file=args.gt_status_file,
         ),
+        location_prior=LocationPriorConfig(
+            prior_path=args.location_prior,
+            output_path=args.write_location_prior,
+            location_samples_path=args.location_samples,
+            capture_device_id=args.capture_device_id,
+            route_group=args.route_group,
+            capture_latitude=args.capture_lat,
+            capture_longitude=args.capture_lon,
+            capture_gps_accuracy_m=args.capture_gps_accuracy_m,
+            query_latitude=args.prior_query_lat,
+            query_longitude=args.prior_query_lon,
+            query_gps_accuracy_m=args.prior_query_gps_accuracy_m,
+            prior_only=args.prior_only,
+            match_radius_m=args.prior_match_radius_m,
+            good_gps_match_radius_m=args.prior_good_gps_match_radius_m,
+            min_observations_for_existing=args.prior_min_observations,
+            min_devices_for_high_confidence=args.prior_min_devices,
+            existence_confidence_threshold=args.prior_existence_threshold,
+        ),
     )
 
 
@@ -235,6 +302,189 @@ def get_video_metadata(video_path: str | Path) -> dict[str, Any]:
         }
     finally:
         cap.release()
+
+
+# ================================================================== #
+# Location prior helpers                                              #
+# ================================================================== #
+
+def _location_prior_settings(cfg: LocationPriorConfig) -> LocationPriorSettings:
+    return LocationPriorSettings(
+        match_radius_m=cfg.match_radius_m,
+        good_gps_match_radius_m=cfg.good_gps_match_radius_m,
+        min_observations_for_existing=cfg.min_observations_for_existing,
+        min_devices_for_high_confidence=cfg.min_devices_for_high_confidence,
+        existence_confidence_threshold=cfg.existence_confidence_threshold,
+    )
+
+
+def _location_prior_requested(cfg: LocationPriorConfig) -> bool:
+    return any(
+        [
+            cfg.prior_path,
+            cfg.output_path,
+            cfg.location_samples_path,
+            cfg.capture_latitude is not None and cfg.capture_longitude is not None,
+            cfg.query_latitude is not None and cfg.query_longitude is not None,
+            cfg.prior_only,
+        ]
+    )
+
+
+def _query_payload(cfg: LocationPriorConfig) -> dict[str, Any] | None:
+    if cfg.query_latitude is None or cfg.query_longitude is None:
+        return None
+    return {
+        "latitude": cfg.query_latitude,
+        "longitude": cfg.query_longitude,
+        "gps_accuracy_m": cfg.query_gps_accuracy_m,
+    }
+
+
+def _default_output_dir(cfg: AuditPipelineConfig, fallback_name: str) -> Path:
+    if cfg.output_dir:
+        return Path(cfg.output_dir)
+    return Path(__file__).resolve().parents[1] / "runs" / "audit" / fallback_name
+
+
+def _process_location_prior(
+    lamps: list[AggregatedLamp],
+    cfg: AuditPipelineConfig,
+    output_dir: Path,
+    run_id: str,
+) -> dict[str, Any] | None:
+    prior_cfg = cfg.location_prior
+    if not _location_prior_requested(prior_cfg):
+        return None
+
+    settings = _location_prior_settings(prior_cfg)
+    store = LocationPriorStore.load(prior_cfg.prior_path)
+    query = _query_payload(prior_cfg)
+    query_match = (
+        store.best_match(
+            float(query["latitude"]),
+            float(query["longitude"]),
+            query.get("gps_accuracy_m"),
+            settings,
+        )
+        if query
+        else None
+    )
+
+    samples = load_location_samples(prior_cfg.location_samples_path)
+    samples.extend(
+        static_location_sample(
+            prior_cfg.capture_latitude,
+            prior_cfg.capture_longitude,
+            prior_cfg.capture_gps_accuracy_m,
+            prior_cfg.capture_device_id,
+            prior_cfg.route_group,
+        )
+    )
+
+    lamp_updates: list[dict[str, Any]] = []
+    for lamp in lamps:
+        evidence = evidence_for_lamp(
+            lamp,
+            samples,
+            run_id=run_id,
+            default_device_id=prior_cfg.capture_device_id,
+            default_route_group=prior_cfg.route_group,
+        )
+        if evidence is None:
+            continue
+
+        candidate, match, new_candidate = store.update_with_observation(evidence, settings)
+        refreshed_match = match or store.best_match(evidence.latitude, evidence.longitude, evidence.gps_accuracy_m, settings)
+        lamp.location = evidence.to_dict()
+        lamp.existence_prior = {
+            "candidate_lamp_id": candidate.candidate_lamp_id,
+            "new_candidate": new_candidate,
+            "match": refreshed_match.to_dict() if refreshed_match else None,
+            "source": LOCATION_PRIOR_IMPLEMENTATION,
+        }
+        lamp_updates.append(
+            {
+                "lamp_track_id": lamp.track_id,
+                "candidate_lamp_id": candidate.candidate_lamp_id,
+                "new_candidate": new_candidate,
+                "location": evidence.to_dict(),
+                "match": refreshed_match.to_dict() if refreshed_match else None,
+            }
+        )
+
+    updated_prior_path: Path | None = None
+    if lamp_updates or prior_cfg.output_path:
+        updated_prior_path = Path(prior_cfg.output_path) if prior_cfg.output_path else output_dir / "known_lamp_prior.json"
+        store.write(updated_prior_path)
+
+    report = build_location_prior_report(
+        prior_path=prior_cfg.prior_path,
+        updated_prior_path=str(updated_prior_path) if updated_prior_path else None,
+        query=query,
+        query_match=query_match,
+        lamp_updates=lamp_updates,
+        store=store,
+        settings=settings,
+    )
+    report_path = write_location_prior_report(output_dir, report)
+    report["report_path"] = str(report_path)
+    return report
+
+
+def _run_prior_only(cfg: AuditPipelineConfig) -> None:
+    prior_cfg = cfg.location_prior
+    query = _query_payload(prior_cfg)
+    if query is None:
+        print("ERROR: --prior-only requires --prior-query-lat and --prior-query-lon", file=sys.stderr)
+        sys.exit(2)
+
+    output_dir = _default_output_dir(cfg, "location_prior_query")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    settings = _location_prior_settings(prior_cfg)
+    store = LocationPriorStore.load(prior_cfg.prior_path)
+    query_match = store.best_match(
+        float(query["latitude"]),
+        float(query["longitude"]),
+        query.get("gps_accuracy_m"),
+        settings,
+    )
+    report = build_location_prior_report(
+        prior_path=prior_cfg.prior_path,
+        updated_prior_path=None,
+        query=query,
+        query_match=query_match,
+        lamp_updates=[],
+        store=store,
+        settings=settings,
+    )
+    report_path = write_location_prior_report(output_dir, report)
+    report["report_path"] = str(report_path)
+    (output_dir / "run_config.json").write_text(json.dumps(cfg.to_dict(), indent=2, default=str), encoding="utf-8")
+    (output_dir / "audit_report.json").write_text(
+        json.dumps(
+            {
+                "generated_at": datetime.now().isoformat(),
+                "summary": {
+                    "prior_only": True,
+                    "claim": report["query"]["claim"],
+                    "known_lamp_match": report["query"]["match"],
+                },
+                "location_prior": report,
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    print("=" * 70)
+    print("  LOCATION PRIOR QUERY")
+    print("=" * 70)
+    print(f"  Claim: {report['query']['claim']}")
+    if query_match:
+        print(f"  Candidate: {query_match.candidate_lamp_id}")
+        print(f"  Confidence: {query_match.confidence:.3f}")
+        print(f"  Distance: {query_match.distance_m:.2f} m")
+    print(f"  Report: {report_path}")
 
 
 # ================================================================== #
@@ -386,6 +636,17 @@ def main() -> None:
     if args.dry_run:
         print(json.dumps(cfg.to_dict(), indent=2, default=str))
         return
+
+    if cfg.location_prior.prior_only:
+        _run_prior_only(cfg)
+        return
+
+    if not cfg.video_path:
+        print("ERROR: --video is required unless --prior-only is used", file=sys.stderr)
+        sys.exit(2)
+    if not cfg.detector.model_path:
+        print("ERROR: --model is required unless --prior-only is used", file=sys.stderr)
+        sys.exit(2)
 
     # Resolve output directory
     video_path = Path(cfg.video_path)
@@ -617,9 +878,22 @@ def main() -> None:
     lamps = aggregate_measurements(
         all_measurements, cfg.aggregation, cfg.measurement, merge_map
     )
+    location_prior_report = _process_location_prior(
+        lamps,
+        cfg,
+        output_dir,
+        run_id=video_path.stem,
+    )
     print(f"       {len(lamps)} unique lamps after aggregation")
     print(f"       {tracks_removed_temporal} tracks removed (too short)")
     print(f"       {duplicates_merged} duplicate tracks merged")
+    if location_prior_report:
+        prior_updates = location_prior_report["current_run_updates"]
+        print(
+            "       Location prior: "
+            f"{prior_updates['matched_existing_candidates']} matched, "
+            f"{prior_updates['new_candidates']} new candidates"
+        )
     print()
 
     # ── Step 5: Evaluation (if GT available) ─────────────────────────
@@ -751,10 +1025,19 @@ def main() -> None:
             "duplicates_merged": duplicates_merged,
         },
     }
+    if location_prior_report:
+        filter_stats["location_prior"] = {
+            "report_path": location_prior_report.get("report_path"),
+            "query_claim": location_prior_report.get("query", {}).get("claim"),
+            "known_lamp_candidates": location_prior_report.get("prior_summary", {}).get("known_lamp_candidates"),
+            "location_evidence_count": location_prior_report.get("current_run_updates", {}).get("location_evidence_count"),
+            "matched_existing_candidates": location_prior_report.get("current_run_updates", {}).get("matched_existing_candidates"),
+            "new_candidates": location_prior_report.get("current_run_updates", {}).get("new_candidates"),
+        }
 
-    json_path = write_json_report(output_dir, lamps, config_dict, video_meta, filter_stats, eval_metrics)
+    json_path = write_json_report(output_dir, lamps, config_dict, video_meta, filter_stats, eval_metrics, location_prior_report)
     csv_path = write_csv_report(output_dir, lamps)
-    md_path = write_markdown_report(output_dir, lamps, config_dict, video_meta, filter_stats, eval_metrics)
+    md_path = write_markdown_report(output_dir, lamps, config_dict, video_meta, filter_stats, eval_metrics, location_prior_report)
 
     # Also save per-lamp detailed JSON
     per_lamp_path = output_dir / "per_lamp_data.json"

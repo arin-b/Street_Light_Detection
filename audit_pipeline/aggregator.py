@@ -40,6 +40,9 @@ class AggregatedLamp:
     frames_off: int = 0
     # Merge info
     merged_from: list[str] = field(default_factory=list)
+    # Optional GPS/device prior evidence populated after aggregation.
+    location: dict[str, Any] = field(default_factory=dict)
+    existence_prior: dict[str, Any] = field(default_factory=dict)
 
     @property
     def on_fraction(self) -> float:
@@ -65,6 +68,8 @@ class AggregatedLamp:
             "frames_off": self.frames_off,
             "on_fraction": round(self.on_fraction, 4),
             "merged_from": self.merged_from,
+            "location": self.location,
+            "existence_prior": self.existence_prior,
         }
 
 

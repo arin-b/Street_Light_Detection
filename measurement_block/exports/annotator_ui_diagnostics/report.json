@@ -1,0 +1,37 @@
+{
+  "url": "http://127.0.0.1:8791",
+  "started_at": "2026-05-28T13:48:17.261Z",
+  "console": [],
+  "page_errors": [],
+  "actions": [
+    {
+      "at": "2026-05-28T13:48:21.351Z",
+      "text": "Annotating frame 1"
+    },
+    {
+      "at": "2026-05-28T13:48:33.417Z",
+      "text": "Annotating frame 2"
+    },
+    {
+      "at": "2026-05-28T13:48:45.458Z",
+      "text": "Annotating frame 3"
+    },
+    {
+      "at": "2026-05-28T13:48:57.504Z",
+      "text": "Annotating frame 4"
+    }
+  ],
+  "screenshots": [
+    "F:\\RBCCPS_Directory\\exports\\annotator_ui_diagnostics\\initial.png",
+    "F:\\RBCCPS_Directory\\exports\\annotator_ui_diagnostics\\frame_01_before_accept.png",
+    "F:\\RBCCPS_Directory\\exports\\annotator_ui_diagnostics\\frame_01_after_accept.png",
+    "F:\\RBCCPS_Directory\\exports\\annotator_ui_diagnostics\\frame_02_before_accept.png",
+    "F:\\RBCCPS_Directory\\exports\\annotator_ui_diagnostics\\frame_02_after_accept.png",
+    "F:\\RBCCPS_Directory\\exports\\annotator_ui_diagnostics\\frame_03_before_accept.png",
+    "F:\\RBCCPS_Directory\\exports\\annotator_ui_diagnostics\\frame_03_after_accept.png",
+    "F:\\RBCCPS_Directory\\exports\\annotator_ui_diagnostics\\frame_04_before_accept.png",
+    "F:\\RBCCPS_Directory\\exports\\annotator_ui_diagnostics\\frame_04_after_accept.png",
+    "F:\\RBCCPS_Directory\\exports\\annotator_ui_diagnostics\\final.png"
+  ],
+  "finished_at": "2026-05-28T13:49:09.578Z"
+}
